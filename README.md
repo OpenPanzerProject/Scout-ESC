@@ -1,4 +1,4 @@
-![Open Panzer Scout ESC](http://www.openpanzer.org/images/github/scout_git.jpg)
+![Open Panzer Scout ESC](http://www.openpanzer.org/images/github/scout_git_r9.jpg)
 # Scout ESC
 
 The Scout is a dual brushed motor controller that accepts both TTL serial and RC inputs. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter. 
