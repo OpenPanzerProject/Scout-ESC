@@ -130,7 +130,7 @@
         BlinkStream         ErrorLEDBlinker;
 
     // Voltage sensing
-        boolean EnableVoltageSensing =      false;      // If false, no voltage sensing will take place, and there will be no under or over-voltage protection aside from that provided by the chips (5.5v to 16v)
+        boolean EnableVoltageSensing =      true;       // If false, no voltage sensing will take place, and there will be no under or over-voltage protection aside from that provided by the chips (5.5v to 16v)
         float MinVoltage =                  6.0;        // Minimum battery voltage before motors are enabled. Can be set by user to any value from 6-16 via serial commands. 
         float MaxVoltage =                  16.0;       // Maximum allowed voltage before motors are disabled.
         #define VoltageReadFrequency_mS     500         // How often to measure voltage in milliseconds
@@ -353,7 +353,7 @@ void loop()
     static uint32_t     LastOverTemp = 0;                       // When did we last detect an overtemp condition 
     
 
-    // Read sensors and Set any error conditions
+    // Read sensors and set any error conditions
     // ---------------------------------------------------------------------------------------------------------------------------------------------->    
     if (ErrorState == ERROR_NONE)
     {
@@ -727,7 +727,6 @@ void loop()
     // Update Fan Speed (it will automatically take care of manual control)
     // ---------------------------------------------------------------------------------------------------------------------------------------------->    
         AutoFanControl();
-    
 }
 
 
@@ -1133,52 +1132,6 @@ void setSpeed(uint8_t motor, int16_t speed)
     }
 }
 
-void setSpeed_fromRC(uint8_t motor, uint16_t s)
-{
-    // In this case we are being given an RC pulsewidth, and we scale it to 
-    s = constrain(s, -127, 127);
-
-    // Now multiply by 3 to scale our speed number (from 0 to 127) to our PWM duty cycle range (0 to 381) 
-    int16_t speed = s * 3;         
-    
-    if (speed > 0)
-    {   //Forward
-        if (motor == 1)
-        {
-            digitalWrite(M1_DirA, HIGH);
-            digitalWrite(M1_DirB, LOW);
-        }
-        else if (motor == 2)
-        {
-            digitalWrite(M2_DirA, HIGH);
-            digitalWrite(M2_DirB, LOW);            
-        }
-    }
-    else 
-    {   //Reverse
-        if (motor == 1)
-        {
-            digitalWrite(M1_DirA, LOW);
-            digitalWrite(M1_DirB, HIGH);
-        }
-        else if (motor == 2)
-        {
-            digitalWrite(M2_DirA, LOW);
-            digitalWrite(M2_DirB, HIGH);            
-        }
-    }
-
-    // Now set the PWM, always a positive number
-    if (motor == 1)
-    {
-        M1_OCR = abs(speed); 
-    }
-    else if (motor == 2)
-    {
-        M2_OCR = abs(speed);
-    }
-}
-
 void StopMotor1(void)
 {
     M1_OCR = 0;
@@ -1244,6 +1197,11 @@ void setFanSpeed(uint8_t s)
     FAN_OCR = s;
 }
 
+void StopFan(void)
+{
+    FAN_OCR = 0;
+}
+
 void setFanFullSpeed(void)
 {
     setFanSpeed(255);
@@ -1272,7 +1230,7 @@ uint16_t maxMotorCurrent;
         return;                                     // Exit
     }
 
-    // If we are not in an error state, we do permit manual control of the fan speed.
+    // If we are not in an error state, we permit manual control of the fan speed.
     if (ManualFanControl) return;                   // In manual mode exit without doing anything. 
 
     // Ok, we need to set the fan to some level automatically. We calculate two speeds based on temperature and current, 
@@ -1499,8 +1457,9 @@ const float alpha = 0.9;
         Voltage = filteredVoltage * multiplier;
     // Now also add our adjustment factor to account for the voltage drop on the input polarity diode
         Voltage += vAdj;
-    //serial.print("Voltage: ");
-    //serial.println(Voltage,2);
+    
+    //Serial.print("Voltage: ");
+    //Serial.println(Voltage,2);
 
     return Voltage;
 }
