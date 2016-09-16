@@ -30,6 +30,7 @@
 // DEFINES AND GLOBAL VARIABLES
 // -------------------------------------------------------------------------------------------------------------------------------------------------->
     // Serial comms
+        #define BAUD_RATE                   38400       // Baud rate fixed
         boolean SerialWatchdog =            false;      // If false (default), the motors will continue at their last commanded speed forever until a new command arrives. If no new command ever arrives, they will keep going. 
                                                         // If true, the absence of any serial communication beyond SerialTimeout will cause the motors to be halted. 
         uint16_t SerialWatchdogTimeout_mS = 1000;       // When SerialWatchdog = true, this is the time in milliseconds after the last serial reception when the motors will automatically be halted as a safety precaution. 
@@ -89,8 +90,8 @@
         _ERROR_STATE ErrorState =           ERROR_NONE;     // Global variable for error state
         
     // Error handling
-        #define OVERCURRENT_DELAY_MS        2000        // How long to wait after an over-current condition before reseting, in milliseconds
-        #define VOLTAGE_DELAY_MS            1000        // How long to wait after an over- or under-voltage condition before reseting, in milliseconds
+        #define OVERCURRENT_DELAY_MS        5000        // How long to wait after an over-current condition before reseting, in milliseconds
+        #define VOLTAGE_DELAY_MS            5000        // How long to wait after an over- or under-voltage condition before reseting, in milliseconds
         #define OVERTEMP_DELAY_MS           5000        // How long to wait after an over-temp condition before resetting, in milliseconds (applies also to short conditions)
 
     // Status LED states
@@ -250,7 +251,7 @@ void setup()
        
     // SERIAL
     // ---------------------------------------------------------------------------------------------------------------------------------------------->        
-        Serial.begin(38400);
+        Serial.begin(BAUD_RATE);
 
 
     // INPUT MODE and ERROR STATE
@@ -293,7 +294,7 @@ void setup()
     // TIMER 2 - FAN MOTOR PWM
     // ---------------------------------------------------------------------------------------------------------------------------------------------->    
         // We use Timer 2 to generate PWM on Arduino pin 11 (PB3). This will be used to control the speed of a cooling fan, and for this purpose it is not critical we achieve ultrasonic frequencies. 
-        // Timer 2 is an 8-bit timer which we will use in Fast PWM Mode with TOP set to 0xFF and a prescaler of 8, that will give us a PWM frequency of ~8KHz. That will be plenty quiet on a fan. 
+        // Timer 2 is an 8-bit timer which we will use in Fast PWM Mode with TOP set to 0xFF and a prescaler of 8, that will give us a PWM frequency of ~8KHz. That will be plenty quiet for a fan. 
     
         // We want: 
         // - Waveform Generation Mode bits (WGM2 2:0) - split across TCCR2A and TCCR2B. These set the PWM modes, we want Mode 3 - Fast PWM with TOP set to 0xFF (255). See page 161
@@ -998,7 +999,7 @@ void ProcessCommand(DataSentence * sentence)
         case 2: 
             // Set minimum voltage
             // Used to set a custom minimum voltage for the battery supplying power (essentially LVC level). If battery voltage drops below this value, 
-            // motors will be turned off. This value is cleared at startup, so much be set each run. The value is sent in .2 volt 
+            // motors will be turned off. This value is cleared at startup, so must be set each run. The value is sent in .2 volt 
             // increments with a command of zero corresponding to 6v, which is the minimum. Valid data is from 0 to 50 (6-16 volts). 
             // The function for converting volts to command data is Value = (desired volts-6) x 5
             
@@ -1044,7 +1045,7 @@ void ProcessCommand(DataSentence * sentence)
         case 22: 
             // Set maximum current
             // Used to set a maximum current PER MOTOR (not total device current). If current on either motor exceeds the maximum level, BOTH motors will be stopped. 
-            // Value is in amps and can be any value from 1 to 30. Default is 12 ammps, if the user chooses to set a higher level it is highly recommended to use a cooling fan. 
+            // Value is in amps and can be any value from 1 to 30. Default is 12 amps, if the user chooses to set a higher level it is highly recommended to use a cooling fan. 
             // One may wonder why we don't permit milliamp-level adjustment the way we do with voltage. The reason is that current sensing on this device is crude and 
             // setting a precision current limit isn't possible anyway. 
             
