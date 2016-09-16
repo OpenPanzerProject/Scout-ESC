@@ -23,12 +23,12 @@ Battery power should be connected to the screw terminals between the motor outpu
 
 An optional physical switch can be connected to GND and MISO pins of the ICSP connector, see the diagram above. When this switch is closed both motors will be immediately stopped regardless of the inputs. This emergency stop switch should be implemented when the Scout is used in any device that could endanger humans. 
 
-![Scout LED Key](http://www.openpanzer.org/images/github/scout_ledpatterns.jpg)
 The Scout accepts either standard RC inputs (from any hobby receiver) or standard TTL serial commands at 38400 baud (5v max). 
 
 On boot the Scout blinks the red LED slowly until a signal is detected. Whichever type of signal is detected first is the communication protocol the Scout will use until the next reboot, and any signal on the alternate input will be ignored. 
 
 During normal operation the blue LED indicates the status of the incoming signal. If a fault is detected the motors will be immediately stopped and the red LED will flash a numeric sequence indicating the reason. 
+![Scout LED Key](http://www.openpanzer.org/images/github/scout_ledpatterns.jpg)
 
 
 # RC Operation
@@ -49,72 +49,57 @@ The baud rate on the Scout is fixed at 38400 but can be changed by modifying the
 
 The serial "packet" is always 4 bytes long: it starts with an address byte, then a command byte, a data byte, and a 7 bit checksum. 
 
-The Scout recognizes two addresses, set by the Address Select switch on the device:
-
-Address A = 131
-
-Address B = 132
+The Scout recognizes two addresses, set by the Address Select switch on the device:<br />
+Address A = 131<br />
+Address B = 132<br />
 
 In other words, up to 2 Scouts can be used on the same serial line without interference, if each is set to a different address. Note these addresses are within the larger range recognized also by Sabertooth devices (128-135). But as long as you set your Sabertooth to a different address, you can control a Scout and Sabertooth on the same serial line. 
 
 ## Command Reference
 Here are the command bytes recognized by the Scout. Commands below 14 match the equivalent Sabertooth commands (though not all Sabertooth commands are implemented). Commands 14 and above are specific to the Scout.  
 
-**0 &nbsp;&nbsp;&nbsp;&nbsp; Motor 1 Forward (0x00, b00000000)**
-
+**0 &nbsp;&nbsp;&nbsp;&nbsp; Motor 1 Forward (0x00, b00000000)**<br />
 This command will spin Motor 1 forward by the speed passed in the data byte. Valid speed data ranges from 0 to 127 with 0 being off (stopped) and 127 being full speed forward.
 
-**1 &nbsp;&nbsp;&nbsp;&nbsp; Motor 1 Reverse (0x01, b00000001)**
-
+**1 &nbsp;&nbsp;&nbsp;&nbsp; Motor 1 Reverse (0x01, b00000001)**<br />
 This command will spin Motor 1 reverse by the speed passed in the data byte. Valid speed data ranges from 0 to 127 with 0 being off (stopped) and 127 being full speed forward.
 
-**2 &nbsp;&nbsp;&nbsp;&nbsp; Set Minimum Voltage (0x02, b00000010)**
-
-By default the Scout will stop the motors if the input voltage dips below 6 volts, but you can set a custom low-voltage cutoff to any level you want between 6 and 16 volts by 0.2 volt increments. Values are not saved on reboot, so must be set with each power cycle. The data byte that follows this command must specify the desired voltage level. The function for converting desired volts to data byte is:
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Volts - 6) x 5
-
+**2 &nbsp;&nbsp;&nbsp;&nbsp; Set Minimum Voltage (0x02, b00000010)**<br />
+By default the Scout will stop the motors if the input voltage dips below 6 volts, but you can set a custom low-voltage cutoff to any level you want between 6 and 16 volts by 0.2 volt increments. Values are not saved on reboot, so must be set with each power cycle. The data byte that follows this command must specify the desired voltage level. The function for converting desired volts to data byte is:<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Volts - 6) x 5<br />
 The valid range for the data byte is therefore 0 through 50. A data byte of 0 will equal a cutoff of 6 volts, which is the minimum. A data byte of 50 will equal a cutoff of 16 volts, which is the maximum. 
 
-**3 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented (0x03, b00000011)**
-
+**3 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented (0x03, b00000011)**<br />
 On the Sabertooth command 3 is used to set the maximum voltage. On the Scout the maximum voltage is hard-coded to 16 volts, which is the limit of the onboard driver ICs. 
 
-**4 &nbsp;&nbsp;&nbsp;&nbsp; Motor 2 Forward (0x04, b00000100)**
-
+**4 &nbsp;&nbsp;&nbsp;&nbsp; Motor 2 Forward (0x04, b00000100)**<br />
 This command will spin Motor 2 forward by the speed passed in the data byte. Valid speed data ranges from 0 to 127 with 0 being off (stopped) and 127 being full speed forward.
 
-**5 &nbsp;&nbsp;&nbsp;&nbsp; Motor 2 Reverse (0x05, b00000101)**
-
+**5 &nbsp;&nbsp;&nbsp;&nbsp; Motor 2 Reverse (0x05, b00000101)**<br />
 This command will spin Motor 2 reverse by the speed passed in the data byte. Valid speed data ranges from 0 to 127 with 0 being off (stopped) and 127 being full speed forward.
 
-**6-13 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented**
-
+**6-13 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented**<br />
 Not implemented and reserved for future compatible functionality with the equivalent Sabertooth commands. 
 
-**14-19 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented**
-
+**14-19 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented**<br />
 Not implemented and reserved for unknown.
 
-**20 &nbsp;&nbsp;&nbsp;&nbsp; Direct Fan Control (0x14, b00001110)**
-
+**20 &nbsp;&nbsp;&nbsp;&nbsp; Direct Fan Control (0x14, b00001110)**<br />
 By default the fan output is controlled automatically by the Scout in response to temperature changes. However it is also possible to control it directly from your host application by using this command followed by a speed byte with a value from 0 to 255, with 0 being off and 255 being fully on. As soon as this command is received, internal Scout control is disabled and the fan output will maintain whatever speed you specify until you specify a new speed or revert control back to the Scout (see below). You would not have to plug a fan into this output, you could use it as a third, uni-directional (no reverse) speed control for a low current motor. Maximum current on this output should be kept to no more than 1 amp. Note: voltage on the fan output is equal to the input battery voltage. 
 
-**21 &nbsp;&nbsp;&nbsp;&nbsp; Set Fan to Automatic Control (0x15, b00001111)**
-
+**21 &nbsp;&nbsp;&nbsp;&nbsp; Set Fan to Automatic Control (0x15, b00001111)**<br />
 This command is typically not necessary because by default the Scout powers up with automatic fan control already enabled. But if you issue direct fan control commands (see above) and then in the same session want to return automatic control to the Scout, you can do so by sending this command. The data byte should still be included but its value will be ignored. 
 
-**22 &nbsp;&nbsp;&nbsp;&nbsp; Set Maximum Current (0x16, b00010000)**
-
+**22 &nbsp;&nbsp;&nbsp;&nbsp; Set Maximum Current (0x16, b00010000)**<br />
 By default the Scout will turn off the motors when either one of them exceeds a current draw of 12 amps, but you can increase or decrease that threshold by issuing this command followed by a data byte with a value between 1 and 30 to represent a current limit of 1 to 30 amps //per motor// (not total device current). Although the limit is per motor, if either motor exceeds the limit, both motors are disabled for safety. The Scout will re-enable them after some length of time has passed, typically about 5 seconds. Note: if you decide to set a current threshold greater than the default it is highly recommended you implement a cooling fan and heatsinks on the driver chips, otherwise you will run into shutdowns due to over-temperature conditions.  
 
-**23 &nbsp;&nbsp;&nbsp;&nbsp; Enable Serial Watchdog (0x17, b00010001)**
+**23 &nbsp;&nbsp;&nbsp;&nbsp; Enable Serial Watchdog (0x17, b00010001)**<br />
 The Serial Watchdog is disabled by default. When enabled, it functions as a safety feature that disables the motors if a serial command is not received within a user-defined length of time. This would protect for example against the case where the communication cable between the Scout and the host device becomes disconnected. Without the Serial Watchdog the Scout would just keep turning the motors at the same speed and direction as the last command. But with the Serial Watchdog enabled, the time allotment would expire and the watchdog would shut everything down. This is a useful feature but it also requires code on the host device to continuously send commands even when those commands don't change, this is why it is disabled by default. 
 
 To enable the watchdog send this command followed by a data byte that specifies the length of the timeout in 10 mS increments. A data value of 0 corresponds to 50mS (the minimum timeout), while a data value of 255 corresponds to a timeout of 2600mS (2.60 seconds, the maximum). The function for converting watchdog time to command data is<br />
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Watchdog Time in mS - 50) / 10 
 
-**24 &nbsp;&nbsp;&nbsp;&nbsp; Disable Serial Watchdog (0x18, b00011000)**
+**24 &nbsp;&nbsp;&nbsp;&nbsp; Disable Serial Watchdog (0x18, b00011000)**<br />
 This command disables the serial watchdog. Since it is disabled by default on power-up, the only time this command would be needed is if you first enabled the watchdog by issuing Command 23 and then later during the same session wanted to disable it.
 
 
