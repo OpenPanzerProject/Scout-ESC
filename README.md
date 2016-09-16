@@ -8,6 +8,11 @@ The Scout was designed with the Open Panzer Tank Control Board in mind and requi
 
 The Scout can also be used in many other applications including robotics. You can think of it as an open-source variant of the [Dimension Engineering Sabertooth 2x12](http://www.dimensionengineering.com/products/sabertooth2x12) or the [Pololu Qik 2s12v10](https://www.pololu.com/product/1112). The remainder of this page covers technical documentation for those wanting to use the Scout in custom projects. 
 
+## Files Included in this Repo
+There are two folders in this repository:<br />
+**OpenPanzerScout** - This folder contains the firmware (Arduino sketch) that actually runs _on_ the Scout device.<br />
+**libraries\** - This folder contains a C++ library that you can use in your projects in order to _control_ the Scout via serial from another Arduino or microcontroller. 
+
 ## Resources
   * For the Scout hardware files and bill of materials, see the [Open Panzer Downloads page](http://openpanzer.org/downloads).
   * For more information on the Open Panzer project, see the [OpenPanzer Wiki](http://www.openpanzer.org/wiki).
