@@ -18,6 +18,7 @@ The Scout can also be used in many other applications including robotics. You ca
 ![Scout ESC board layout](http://www.openpanzer.org/images/github/scout_layout.jpg)
 <br />
 <br />
+
 # Functional Overview 
 
 Battery power should be connected to the screw terminals between the motor outputs. There is a secondary power _output_ useful for providing battery voltage to a secondary device, such as the TCB. Do not connect the battery to the power _output_! It is not polarity-protected. 
@@ -29,6 +30,7 @@ The Scout accepts either standard RC inputs (from any hobby receiver) or standar
 On boot the Scout blinks the red LED slowly until a signal is detected. Whichever type of signal is detected first is the communication protocol the Scout will use until the next reboot, and any signal on the alternate input will be ignored. 
 
 During normal operation the blue LED indicates the status of the incoming signal. If a fault is detected the motors will be immediately stopped and the red LED will flash a numeric sequence indicating the reason. 
+
 <br />
 <br />
 ![Scout LED Key](http://www.openpanzer.org/images/github/scout_ledpatterns.jpg)
