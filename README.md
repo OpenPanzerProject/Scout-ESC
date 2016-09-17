@@ -13,9 +13,10 @@ There are two folders in this repository:<br />
   * **OpenPanzerScout** - This folder contains the firmware (Arduino sketch) that actually runs _on_ the Scout device.
   * **libraries\** - This folder contains a C++ library that you can use in your projects in order to _control_ the Scout via serial from another Arduino or microcontroller. 
 
-## Resources
-  * For the Scout hardware files and bill of materials, see the [Open Panzer Downloads page](http://openpanzer.org/downloads).
+## Additional Resources
+  * For Scout board files, schematics, and  bill of materials, see the [Open Panzer Downloads page](http://openpanzer.org/downloads).
   * For more information on the Open Panzer project, see the [OpenPanzer Wiki](http://www.openpanzer.org/wiki).
+  * For interfacing the Scout with the Open Panzer Tank Control Board (TCB), see the (Serial Motor Controller page)[http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor] in the TCB wiki.
   * To discuss the project, feel free to join the [Open Panzer Community](http://openpanzer.org/forum/index.php?action=forum).
 <br />
 <br />
