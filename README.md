@@ -115,6 +115,13 @@ To enable the watchdog send this command followed by a data byte that specifies 
 This command disables the serial watchdog. Since it is disabled by default on power-up, the only time this command would be needed is if you first enabled the watchdog by issuing Command 23 and then later during the same session wanted to disable it.
 
 
+# To-Do List
+If you want to contribute to the project here are a few firmware improvements that still need work: 
+  * Add auto-baud detection code. Sabertooth can do it somehow, so it must be possible.
+  * Add serial commands 6 through 13 compatible with Sabertooth protocol (low resolution and mixed-mode driving).
+  * Characterize empirically the board heat profile at various currents, and improve the fan control algorithm. 
+  * Test various fans and decide on a specific model.
+
 
 # Specifications
 
