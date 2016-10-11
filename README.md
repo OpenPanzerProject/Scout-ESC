@@ -90,26 +90,35 @@ This command will spin Motor 2 forward by the speed passed in the data byte. Val
 **5 &nbsp;&nbsp;&nbsp;&nbsp; Motor 2 Reverse (0x05, b00000101)**<br />
 This command will spin Motor 2 reverse by the speed passed in the data byte. Valid speed data ranges from 0 to 127 with 0 being off (stopped) and 127 being full speed forward.
 
-**6-19 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented**<br />
-Not implemented and reserved for future commands, including possible compatibility with the equivalent Sabertooth commands. 
+**6-13 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented**<br />
+Not implemented and reserved for future compatibility with the equivalent Sabertooth commands. 
 
-**20 &nbsp;&nbsp;&nbsp;&nbsp; Direct Fan Control (0x14, b00001110)**<br />
+**14 &nbsp;&nbsp;&nbsp;&nbsp; Serial Watchdog (0x0E, b00001110)**<br />
+The Serial Watchdog is disabled by default. When enabled, it functions as a safety feature that disables the motors if a serial command is not received within a user-defined length of time. This would protect for example against the case where the communication cable between the Scout and the host device becomes disconnected. Without the Serial Watchdog the Scout would just keep turning the motors at the same speed and direction as the last command. But with the Serial Watchdog enabled, the time allotment would expire and the watchdog would shut the motors down. This is a useful feature but it also requires code on the host device to continuously send commands even when those commands don't change, this is why it is disabled by default. 
+
+To enable the watchdog send this command followed by a data byte that specifies the length of the timeout in 100 mS increments. A data value of 1 corresponds to 100mS (the minimum timeout), while a data value of 255 corresponds to a timeout of 25500mS (25.5 seconds, the maximum). The function for converting watchdog time to command data is<br />
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = ( Desired Watchdog Time in mS / 10 )
+
+To disable the watchdog send this command with a data byte of 0. Since this feature is disabled by default on power-up, the only time you would need to issue a specific disable command is if you first enabled the watchdog and then later during the same session wanted to disable it.
+
+**15 &nbsp;&nbsp;&nbsp;&nbsp; Change Baud Rate (0x0F, b00001111)**<br />
+When power is applied the Scout will always initialize its serial port to a baud rate of 38400. This takes all the guesswork out of knowing what rate to use to communicate with it. However you can tell it to switch to a new baud rate by issuing this command followed by one of the following data bytes: <br />
+1: 2400
+2: 9600
+3: 19200
+4: 38400
+5: 115200
+
+Upon receiving one of these commands the Scout will switch its serial port to the new baud rate and from then on will only accept commands at the new rate. The setting is //not// remembered on shutdown, and upon next boot the Scout will re-initialize to 38400 once again. 
+
+**20 &nbsp;&nbsp;&nbsp;&nbsp; Direct Fan Control (0x14, b00010100)**<br />
 By default the fan output is controlled automatically by the Scout in response to temperature changes. However it is also possible to control it directly from your host application by using this command followed by a speed byte with a value from 0 to 255, with 0 being off and 255 being fully on. As soon as this command is received, internal Scout control is disabled and the fan output will maintain whatever speed you specify until you specify a new speed or revert control back to the Scout (see below). You would not have to plug a fan into this output, you could use it as a third, uni-directional (no reverse) speed control for a low current motor. Maximum current on this output should be kept to no more than 1 amp. Note: voltage on the fan output is equal to the input battery voltage. 
 
-**21 &nbsp;&nbsp;&nbsp;&nbsp; Set Fan to Automatic Control (0x15, b00001111)**<br />
+**21 &nbsp;&nbsp;&nbsp;&nbsp; Set Fan to Automatic Control (0x15, b00010101)**<br />
 This command is typically not necessary because by default the Scout powers up with automatic fan control already enabled. But if you issue direct fan control commands (see above) and then in the same session want to return automatic control to the Scout, you can do so by sending this command. The data byte should still be included but its value will be ignored. 
 
-**22 &nbsp;&nbsp;&nbsp;&nbsp; Set Maximum Current (0x16, b00010000)**<br />
+**22 &nbsp;&nbsp;&nbsp;&nbsp; Set Maximum Current (0x16, b00010110)**<br />
 By default the Scout will turn off the motors when either one of them exceeds a current draw of 12 amps, but you can increase or decrease that threshold by issuing this command followed by a data byte with a value between 1 and 30 to represent a current limit of 1 to 30 amps //per motor// (not total device current). Although the limit is per motor, if either motor exceeds the limit, both motors are disabled for safety. The Scout will re-enable them after some length of time has passed, typically about 5 seconds. Note: if you decide to set a current threshold greater than the default it is highly recommended you implement a cooling fan and heatsinks on the driver chips, otherwise you will run into shutdowns due to over-temperature conditions.  
-
-**23 &nbsp;&nbsp;&nbsp;&nbsp; Enable Serial Watchdog (0x17, b00010001)**<br />
-The Serial Watchdog is disabled by default. When enabled, it functions as a safety feature that disables the motors if a serial command is not received within a user-defined length of time. This would protect for example against the case where the communication cable between the Scout and the host device becomes disconnected. Without the Serial Watchdog the Scout would just keep turning the motors at the same speed and direction as the last command. But with the Serial Watchdog enabled, the time allotment would expire and the watchdog would shut everything down. This is a useful feature but it also requires code on the host device to continuously send commands even when those commands don't change, this is why it is disabled by default. 
-
-To enable the watchdog send this command followed by a data byte that specifies the length of the timeout in 10 mS increments. A data value of 0 corresponds to 50mS (the minimum timeout), while a data value of 255 corresponds to a timeout of 2600mS (2.60 seconds, the maximum). The function for converting watchdog time to command data is<br />
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Watchdog Time in mS - 50) / 10 
-
-**24 &nbsp;&nbsp;&nbsp;&nbsp; Disable Serial Watchdog (0x18, b00011000)**<br />
-This command disables the serial watchdog. Since it is disabled by default on power-up, the only time this command would be needed is if you first enabled the watchdog by issuing Command 23 and then later during the same session wanted to disable it.
 
 
 # To-Do List
