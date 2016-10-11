@@ -126,10 +126,9 @@ By default the Scout will turn off the motors when either one of them exceeds a 
 
 # To-Do List
 If you want to contribute to the project here are a few firmware improvements that still need work: 
-  * Add auto-baud detection code. Sabertooth can do it somehow, so it must be possible.
-  * Add serial commands 6 through 13 compatible with Sabertooth protocol (low resolution and mixed-mode driving).
+  * Add serial commands 6-13 and 16-17 compatible with Sabertooth protocol (low resolution commands, mixed-mode driving, ramping, and adjustable deadband).
   * Characterize empirically the board heat profile at various currents, and improve the fan control algorithm. 
-  * Test various fans and decide on a specific model.
+  * Test various fans and decide on a specific model. 
 
 
 # Specifications
