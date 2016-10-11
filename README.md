@@ -109,7 +109,7 @@ When power is applied the Scout will always initialize its serial port to a baud
 4: 38400<br />
 5: 115200<br />
 
-Upon receiving one of these commands the Scout will switch its serial port to the new baud rate and from then on will only accept commands at the new rate. The setting is //not// remembered on shutdown, and upon next boot the Scout will re-initialize to 38400 once again. 
+Upon receiving one of these commands the Scout will switch its serial port to the new baud rate and from then on will only accept commands at the new rate. The setting is _not_ remembered on shutdown, and upon next boot the Scout will re-initialize to 38400 once again. 
 
 **20 &nbsp;&nbsp;&nbsp;&nbsp; Direct Fan Control (0x14, b00010100)**<br />
 By default the fan output is controlled automatically by the Scout in response to temperature changes. However it is also possible to control it directly from your host application by using this command followed by a speed byte with a value from 0 to 255, with 0 being off and 255 being fully on. As soon as this command is received, internal Scout control is disabled and the fan output will maintain whatever speed you specify until you specify a new speed or revert control back to the Scout (see below). You would not have to plug a fan into this output, you could use it as a third, uni-directional (no reverse) speed control for a low current motor. Maximum current on this output should be kept to no more than 1 amp. Note: voltage on the fan output is equal to the input battery voltage. 
