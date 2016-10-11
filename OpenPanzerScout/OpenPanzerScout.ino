@@ -30,9 +30,9 @@
 // DEFINES AND GLOBAL VARIABLES
 // -------------------------------------------------------------------------------------------------------------------------------------------------->
     // Serial comms
-        #define BAUD_RATE                   38400       // Baud rate fixed
+        #define BAUD_RATE_DEFAULT           38400       // Baud rate fixed at boot - the user can change it via serial command, but this way they always know what rate the device is initialized to. 
         boolean SerialWatchdog =            false;      // If false (default), the motors will continue at their last commanded speed forever until a new command arrives. If no new command ever arrives, they will keep going. 
-                                                        // If true, the absence of any serial communication beyond SerialTimeout will cause the motors to be halted. 
+                                                        // If true, the absence of any serial communication beyond SerialTimeout will cause the motors to be halted. Disabled at boot by default. 
         uint16_t SerialWatchdogTimeout_mS = 1000;       // When SerialWatchdog = true, this is the time in milliseconds after the last serial reception when the motors will automatically be halted as a safety precaution. 
                                                         // Default to 1 second but will be set by the user to some custom time if they enable SerialWatchdog.
         #define SerialBlinkTimeout_mS       1000        // When the serial watchdog is disabled, we will use this length of time with no serial commands to blink an LED, but we won't stop the motors. 
@@ -43,6 +43,11 @@
             uint8_t    Value =              0;
             uint8_t    Checksum =           0;
         };
+        #define BAUD_CODE_2400              1           // Codes for changing baud rates
+        #define BAUD_CODE_9600              2           // These are the same codes used by certain Dimension Engineering Sabertooth controllers
+        #define BAUD_CODE_19200             3           //
+        #define BAUD_CODE_38400             4           //
+        #define BAUD_CODE_115200            5           //
 
     // RC defines
         #define NUM_RC_CHANNELS             2           // Number of RC channels we can read
@@ -251,7 +256,7 @@ void setup()
        
     // SERIAL
     // ---------------------------------------------------------------------------------------------------------------------------------------------->        
-        Serial.begin(BAUD_RATE);
+        Serial.begin(BAUD_RATE_DEFAULT);
 
 
     // INPUT MODE and ERROR STATE
@@ -1024,8 +1029,43 @@ void ProcessCommand(DataSentence * sentence)
             setSpeed(2, -getSpeedCommand_fromSerial(sentence->Value));
             break;
 
-        // cases  6-13 reserved for future compatible functionality with the equivalent Sabertooth commands. 
-        // cases 14-19 reserved for unknown
+        // cases  6-13 reserved for future compatibility with the equivalent Sabertooth commands 
+    
+        case 14: 
+            // Serial Watchdog (disabled by default on each boot)
+            // Values greater than 0 will enabled the watchdog. The value specifies what length of time the controller will wait for a new serial command, after which if it does not receive one it will 
+            // stop the motors as a safety precaution. This can help guard against for example the communication cable becoming disconnected. 
+            // The the value passed is 0 it will disable the watchdog, however the feature is disabled by default on each restart so you don't need to do anything if you don't want it. 
+            // Note also the serial watchdog has no effect when the Scout is running in RC mode. 
+
+            if (sentence->Value == 0)
+            {
+                SerialWatchdog = false;
+            }
+            else
+            {
+                // The length of time for the watchdog to wait is set in 100mS increments, so for example a value of 10 would equate to a watchdog timeout of 1000mS (1 second). 
+                // Valid data is a number from 0 to 255 which corresponds to watchdog timeouts of 100ms (1/10 second) to 25500mS (25.5 seconds)
+                // The function for converting watchdog time to command data is Value = desired time in mS / 100 
+                SerialWatchdogTimeout_mS = sentence->Value * 100;
+                SerialWatchdog = true;
+            }
+            break;
+
+        case 15: 
+            // Change baud rate. If valid value passed, re-start the hardware serial port at the selected baud rate
+            switch (sentence->Value)
+            {
+                case BAUD_CODE_2400:    Serial.begin(2400);     break;
+                case BAUD_CODE_9600:    Serial.begin(9600);     break;
+                case BAUD_CODE_19200:   Serial.begin(19200);    break;
+                case BAUD_CODE_38400:   Serial.begin(38400);    break;
+                case BAUD_CODE_115200:  Serial.begin(115200);   break;
+            }
+            break;
+
+        // cases 16-17 reserved for future compatibility with Sabertooth commands (ramping and deadband)
+        // case  19 presently un-assigned
 
         case 20:
             // Direct fan control
@@ -1054,24 +1094,6 @@ void ProcessCommand(DataSentence * sentence)
             {
                 MaxCurrent_A = sentence->Value;
             }
-            break;
-
-        case 23: 
-            // Enable SerialWatchdog (disabled by default)
-            // The serial watchdog will stop the motors if a serial command hasn't been received in a certain amount of time. This is a safety feature that will stop the motors
-            // in the event the communication cable becomes disconnected, for example. 
-            SerialWatchdog = true;
-
-            // The length of time for the watchdog to wait is set in 10mS increments with a value of zero corresponding to 50mS, which is the minimum. 
-            // Valid data is a number from 0 to 255, which corresponds to a watchdog time of 50ms to 2600mS (0.05 to 2.60 seconds)
-            // The function for converting watchdog time to command data is Value = (desired time in mS - 50) / 10 
-            SerialWatchdogTimeout_mS = 50 + (sentence->Value * 10);
-            break;
-
-       case 24: 
-            // Disable SerialWatchdog
-            // The SerialWatchdog is disabled by default, so the only time you would need to call this is if you first enabled it (command 23) and then wanted later to disable it.
-            SerialWatchdog = false;
             break;
             
         default:
