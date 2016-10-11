@@ -103,11 +103,11 @@ To disable the watchdog send this command with a data byte of 0. Since this feat
 
 **15 &nbsp;&nbsp;&nbsp;&nbsp; Change Baud Rate (0x0F, b00001111)**<br />
 When power is applied the Scout will always initialize its serial port to a baud rate of 38400. This takes all the guesswork out of knowing what rate to use to communicate with it. However you can tell it to switch to a new baud rate by issuing this command followed by one of the following data bytes: <br />
-1: 2400
-2: 9600
-3: 19200
-4: 38400
-5: 115200
+1: 2400<br />
+2: 9600<br />
+3: 19200<br />
+4: 38400<br />
+5: 115200<br />
 
 Upon receiving one of these commands the Scout will switch its serial port to the new baud rate and from then on will only accept commands at the new rate. The setting is //not// remembered on shutdown, and upon next boot the Scout will re-initialize to 38400 once again. 
 
