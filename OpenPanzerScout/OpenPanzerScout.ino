@@ -1,8 +1,8 @@
 /* Scout ESC            Open Panzer dual brushed motor controller
  * Source:              openpanzer.org              
  * Authors:             Luke Middleton
- * Version:             9.01    (for use with board revisions 8 and 9)
- * Last Updated:        10/11/2016
+ * Version:             9.02    (for use with board revisions 8,9,10)
+ * Last Updated:        01/20/2017
  *                      
  * Copyright 2016 Open Panzer
  *   
@@ -48,6 +48,7 @@
         #define BAUD_CODE_19200             3           //
         #define BAUD_CODE_38400             4           //
         #define BAUD_CODE_115200            5           //
+        #define BAUD_CODE_57600             6           // The preceding codes are numbered identically to the codes used for Sabertooth controllers, which do not include 57600. That is why 57600 is number 6 and not number 5.
 
     // RC defines
         #define NUM_RC_CHANNELS             2           // Number of RC channels we can read
@@ -187,7 +188,7 @@
     const byte BlueLED =          17;           // A3    Output    - Blue LED - used to indicate status             PC3              ADC3
     const byte M2_CS =            18;           // A4    Input     - Motor 2 current sense                          PC4              ADC4
     const byte M2_DIAG =          19;           // A5    Input     - Motor 2 status                                 PC5              ADC5
-    const byte VSense =           A6;           // A6    Input     - Battery voltage readin through divider         N/A              ADC6
+    const byte VSense =           A6;           // A6    Input     - Battery voltage reading through divider        N/A              ADC6
     // ADC6 and ADC7 are not broken out in the DIP version of the 328 chip and are therefore not referenced by the original Arduino Duemilanove board. 
     // They are however broken out on the TQFP chip and if we set our board type to Nano we can reference the names A6 and A7 in Arduino code. 
 
@@ -982,8 +983,8 @@ boolean ChecksumValid(DataSentence * sentence)
 {
     uint8_t check = (sentence->Address + sentence->Command + sentence->Value) & B01111111;
 
-    if (check = sentence->Checksum) return true;
-    else                            return false;
+    if (check == sentence->Checksum) return true;
+    else                             return false;
 }
 
 void ProcessCommand(DataSentence * sentence)
@@ -1061,6 +1062,7 @@ void ProcessCommand(DataSentence * sentence)
                 case BAUD_CODE_19200:   Serial.begin(19200);    break;
                 case BAUD_CODE_38400:   Serial.begin(38400);    break;
                 case BAUD_CODE_115200:  Serial.begin(115200);   break;
+                case BAUD_CODE_57600:   Serial.begin(57600);    break;
             }
             break;
 
