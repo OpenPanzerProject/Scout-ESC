@@ -1,4 +1,4 @@
-![Open Panzer Scout ESC](http://www.openpanzer.org/images/github/scout_git_r9.jpg)
+![Open Panzer Scout ESC](http://www.openpanzer.org/images/github/scout_git_r10.jpg)
 
 # Open Panzer Scout ESC
 
