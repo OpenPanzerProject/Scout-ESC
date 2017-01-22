@@ -26,7 +26,7 @@ If you are building your own board from scratch you will first need to load the 
 <br />
 <br />
 <br />
-![Scout ESC board layout](http://www.openpanzer.org/images/github/scout_layout.jpg)
+![Scout ESC board layout](http://www.openpanzer.org/images/github/scout_layout_r10.jpg)
 <br />
 <br />
 
