@@ -1,0 +1,12 @@
+0.92.02         03/05/2017 - Changed version to standard nomenclature. 
+   9.02         01/20/2017 - Fixed bug in serial checksum validation routine.
+   9.01         10/11/2016 - Changed serial watchdog command to be compatible with the Sabertooth protocol. 
+                           - Added a serial command to allow changing the baud rate also compatible with the 
+                             Sabertooth protocol, but unlike the Sabertooth the Scout will always boot to a 
+                             fixed baud of 38400. This makes initial communication with the device easier since 
+                             you don't have to guess what baud rate it might be set at.
+                           - Enable voltage sensing.
+   8.01         07/23/2016 - Overcurrent, overtemp, and over/under voltage fault handing, fan control, 
+                             expanded serial commands, serial watchdog, and more. 
+      0         07/17/2016 - Added automatic mode detection between serial and RC
+      0         05/21/2016 - Initial commit
