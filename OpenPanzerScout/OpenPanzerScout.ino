@@ -1,7 +1,7 @@
 /* Scout ESC            Open Panzer dual brushed motor controller
  * Source:              openpanzer.org              
  * Authors:             Luke Middleton
- * Version:             9.02    (for use with board revisions 8,9,10)
+ * Version:             00.90.02    (for use with board revisions 8,9,10)
  * Last Updated:        01/20/2017
  *                      
  * Copyright 2016 Open Panzer
