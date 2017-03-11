@@ -137,24 +137,19 @@ void ToggleAllDirectionPins()
     digitalWrite(M2_DirB, !digitalRead(M2_DirB));
 }
 
-// This function was created to compensate for certain gearboxes such as the Taigen V2 Steel 3:1 and 4:1 gearboxes that have inadequate
-// internal friction to prevent freewheeling with any sort of external force. When used in a tank or similar vehicle that requires 
-// differential gearbox speed in order to turn, the result can be that the model is difficult or impossible to steer. Reducing voltage to the
-// inner track isn't enough, the outer (faster) track may be enough to keep driving the model forward and the inner track just freewheels to keep 
-// up. The effect is most pronounced on heavy models with wide tracks. 
-// 
-// If "DragInnerTrack" is set to true, the main loop will call this function at routine intervals as set by the defines DRAG_FREQ_MS and DRAG_TIME_MS
-// specified at the top of the sketch. DragInnerTrack defaults to false at boot but can be set by the user via serial command. 
+
+// If "DragInnerTrack" is set to true, the main loop will call the DragMotor() function at routine intervals as set by the defines DRAG_FREQ_MS and 
+// DRAG_TIME_MS specified at the top of the sketch. 
 // 
 // When this function is called, it determines if one motor is supposed to be moving slower than the other. If so, it brakes the slower motor by 
 // shorting the motor leads for DRAG_TIME_MS, after which it reverts the motor polarity to what it was previously based on its current direction 
 // (accomplished through calling setSpeed again). 
 //
-// The effect is that the slower motor is still driven at whatever speed we tell it. But intersperesed with voltage to spin the motor we pulse the brake
+// The effect is that the slower motor is still driven at whatever speed we tell it. But interspersed with voltage to spin the motor we pulse the brake
 // as well. We can't pulse the brakes too often or else the motor won't spin at all, but we need to pulse it often enough to try to prevent the motor
 // from spinning faster than we want it when being dragged by an external force. Of course this whole process is inefficient and results in a higher
-// current draw. If you don't have a problem steering or if you're not even using this for a tracked vehicle in the first place, you don't need to enable
-// this feature to begin with. 
+// current draw. If you don't have a problem steering or if you're not even controlling a differentially-steered vehicle in the first place, you don't
+// need to enable this feature to begin with.         
 void DragMotor()
 {
     #define speedOffset 5   // Only start dragging if there is this minimum amount of difference between the track speeds

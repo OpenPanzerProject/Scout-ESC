@@ -174,10 +174,10 @@ void ProcessCommand(DataSentence * sentence)
         case 23: 
             // Brake motors at stop
             // The default method of stopping the motors is simply to quit powering them. However this does nothing to keep them from free-wheeling in response to an external
-            // force. If we actually want them to remain stopped, we need to "brake" them. This is done by shorting both motor leads to ground, this creates resistance inside 
-            // the motor that can help keep it stationary. The motor of course can still be turned, the brake is not very strong. But it can make a difference in some applications. 
+            // force. If we actually want them to remain stopped, we need to "brake" them. This is done by shorting both motor leads together which creates resistance inside 
+            // the motor that can help keep it stationary. The motor of course can still be turned as the brake is not very strong. But it can make a difference in some applications. 
             // For tracked vehicles we will typically want this enabled since turning at slow speed is accomplished by keeping one track stationary. 
-            // Pass value of true to enable, false to disable. 
+            // The BrakeAtStop setting defaults to false at bootup but can be set by the user via this serial command. Pass a value of 1 (true) in the data byte to enable, or 0 (false) to disable. 
             if (sentence->Value)
             {
                 BrakeAtStop = true;
@@ -192,7 +192,19 @@ void ProcessCommand(DataSentence * sentence)
             break;
         
         case 24: 
-            // Drag inner track
+            // Drag Inner Track
+            // This function was created to compensate for certain gearboxes such as the Taigen V2 Steel 3:1 and 4:1 gearboxes that have inadequate
+            // internal friction to prevent freewheeling with any sort of external force. When used in a tank or similar vehicle that requires 
+            // differential motor speed in order to turn, the model may become difficult or impossible to steer. 
+            // 
+            // The effect is most pronounced on heavy wide-tracked models with metal upgrades, such as the King Tiger, Jagdtiger, Panther, Jagdpanther, etc.... 
+            // In these cases reducing voltage to the inner track to steer does nothing, the outer (faster) track has enough traction with the ground to 
+            // keep driving the model straight forward and the inner track just freewheels to keep up, rather than "dragging" the model into a turn as it should. 
+            // 
+            // The DragInnerTrack setting defaults to false at bootup but can be set by the user via this serial command. Pass a value of 1 (true) in the data byte 
+            // to enable, or 0 (false) to disable. When enabled, the Scout will determine which motor is supposed to be turning slower than the other, and attempt 
+            // to prevent it from freewheeling beyond the desired speed by "dragging" it with brief, pulsed brake commands. 
+            // See the DragMotor() function on the MOTOR tab of this sketch for further comments. 
             if (sentence->Value) DragInnerTrack = true;
             else                 DragInnerTrack = false;
             break; 
