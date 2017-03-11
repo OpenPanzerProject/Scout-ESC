@@ -13,16 +13,16 @@ There are two folders in this repository:<br />
   * **OpenPanzerScout** - This folder contains the firmware (Arduino sketch) that actually runs _on_ the Scout device.
   * **libraries\** - This folder contains a C++ library that you can use in your projects in order to _control_ the Scout via serial from another Arduino or microcontroller. 
 
-## For Developers
-The sketch located in the OpenPanzerScout folder can be compiled in the Arduino IDE. First select "Arduino Nano" as the board selection from the Tools menu. The sketch can then be flashed to the Scout using an FTDI cable or something like [Adafruit's FTDI Friend](https://www.adafruit.com/product/284) adapter. 
-
-If you are building your own board from scratch you will first need to load the bootloader before flashing firmware. This must be done using the ISP connector and a device such as the AVRISP mkII or the USBASP. The bootloader used on the Scout is the Arduino Nano bootloader. 
-
 ## Additional Resources
   * For Scout board files, schematics, and  bill of materials, see the [Open Panzer Downloads page](http://openpanzer.org/downloads).
   * For more information on the Open Panzer project, see the [OpenPanzer Wiki](http://wiki.openpanzer.org).
   * For interfacing the Scout with the Open Panzer Tank Control Board (TCB), see the [Serial Motor Controller page](http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) in the TCB wiki.
   * To discuss the project, feel free to join the [Open Panzer Community](http://openpanzer.org/forum/index.php?action=forum).
+  
+## For Developers
+The sketch located in the OpenPanzerScout folder can be compiled in the Arduino IDE. First select "Arduino Nano" as the board selection from the Tools menu. The sketch can then be flashed to the Scout using an FTDI cable or something like [Adafruit's FTDI Friend](https://www.adafruit.com/product/284) adapter. 
+
+If you are building your own board from scratch you will first need to load the bootloader before flashing firmware. This must be done using the ISP connector and a device such as the AVRISP mkII or the USBASP. The bootloader used on the Scout is the Arduino Nano bootloader. 
 <br />
 <br />
 <br />
