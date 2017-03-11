@@ -64,7 +64,7 @@ The Scout uses the same packetized serial protocol used by the [Dimension Engine
 
 The baud rate on the Scout is fixed at 38400 but can be changed by modifying the sketch, it is the first definition at the top of the file. Serial is in the 8N1 protocol: each data byte consists of 8 bits, no parity bit, and 1 stop bit. This is the most common configuration for serial communication today, and is probably already the default on whatever master device you are using. 
 
-The serial "packet" is always 4 bytes long: it starts with an address byte, then a command byte, a data byte, and a 7 bit checksum. 
+The serial "packet" is always 4 bytes long: it starts with an address byte, then a command byte, a data (value) byte, and a 7 bit checksum. 
 
 The Scout recognizes two addresses, set by the Address Select switch on the device:<br />
 Address A = 131<br />
@@ -127,6 +127,20 @@ This command is typically not necessary because by default the Scout powers up w
 
 **22 &nbsp;&nbsp;&nbsp;&nbsp; Set Maximum Current (0x16, b00010110)**<br />
 By default the Scout will turn off the motors when either one of them exceeds a current draw of 12 amps, but you can increase or decrease that threshold by issuing this command followed by a data byte with a value between 1 and 30 to represent a current limit of 1 to 30 amps //per motor// (not total device current). Although the limit is per motor, if either motor exceeds the limit, both motors are disabled for safety. The Scout will re-enable them after some length of time has passed, typically about 5 seconds. Note: if you decide to set a current threshold greater than the default it is highly recommended you implement a cooling fan and heatsinks on the driver chips, otherwise you will run into shutdowns due to over-temperature conditions.  
+
+**23 &nbsp;&nbsp;&nbsp;&nbsp; Brake at Stop (0x17, b00010111)**<br />
+The default method of stopping the motors is simply to quit powering them. However this does nothing to keep them from free-wheeling in response to an external force. If we actually want them to remain stopped, we need to "brake" them. This is done by shorting both motor leads together, this creates resistance inside the motor that can help keep it stationary. The motor of course can still be turned as the brake is not very strong, but it can make a difference in some applications. Typically you will want to enable this for tracked vehicles or robots that use differential motor speed to steer. For cars or other applications you may prefer the motors to be able to freewheel. 
+
+The brake at stop setting defaults to false at bootup but can be set by the user via this serial command. Pass a value of 1 (true) in the data byte to enable, or 0 (false) to disable.  
+            
+**24 &nbsp;&nbsp;&nbsp;&nbsp; Drag Inner Track (0x18, b00011000)**<br />
+This function was created to compensate for certain gearboxes such as the Taigen V2 Steel 3:1 and 4:1 gearboxes that have inadequate internal friction to prevent freewheeling with any sort of external force. When used in a tank or similar vehicle that requires differential motor speed in order to turn, the model may be difficult or impossible to steer.
+
+The effect is most pronounced on heavy, wide-tracked models with metal upgrades, such as the King Tiger, Jagdtiger, Panther, Jagdpanther, etc.... In these cases reducing voltage to the inner track to steer does nothing, the outer (faster) track has enough traction with the ground to keep driving the model straight forward and the inner track just freewheels to keep up, rather than "dragging" the model into a turn as it should. 
+
+The DragInnerTrack setting defaults to false at bootup but can be set by the user via this serial command. Pass a value of 1 (true) in the data byte to enable, or 0 (false) to disable. When enabled, the Scout will determine which motor is supposed to be turning slower than the other, and attempt to prevent it from freewheeling beyond the desired speed by "dragging" it with brief, pulsed brake commands interspersed with the actual speed command.
+
+The option should be left disabled unless you specifically have a need to use it. 
 
 
 # To-Do List
