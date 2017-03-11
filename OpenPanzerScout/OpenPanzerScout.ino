@@ -1,8 +1,8 @@
 /* Scout ESC            Open Panzer dual brushed motor controller
  * Source:              openpanzer.org              
  * Authors:             Luke Middleton
- * Version:             00.90.02    (for use with board revisions 8,9,10)
- * Last Updated:        01/20/2017
+ * Version:             00.90.03    (for use with board revisions 8,9,10)
+ * Last Updated:        03/11/2017
  *                      
  * Copyright 2016 Open Panzer
  *   
@@ -85,6 +85,15 @@
         #define INPUT_ERROR                 3           
         _INPUT_MODE InputMode =             INPUT_UNKNOWN;  // Global variable for input mode
 
+    // Motor handling
+        int16_t M1_Speed =                  0;          // Global speed variable (signed!)
+        int16_t M2_Speed =                  0;          // Global speed variable (signed!)
+        boolean BrakeAtStop =           false;          // Should the motors be braked when stopped, or allowed to freewheel. Can be set through serial.
+        boolean DragInnerTrack =        false;          // If both motors are running, should we attempt to prevent the slower motor from free-wheeling. Can be set through serial. 
+        #define DRAG_FREQ_MS               12           // How often to drag the slower motor by braking it, in milliseconds
+        #define DRAG_TIME_MS                3           // How long to apply the brake in milliseconds. The brake will be pulsed concurrently with the actual drive speed. 
+                                                        // (1000/ DRAG_FREQ_MS + DRAG_TIME_MS) * DRAG_TIME_MS = the amount of time each second the motor is being braked rather than run. 
+                                                        // (1000/ 12 + 3) * 3 = 200mS per second is being dragged, in other words, 1/5 of the time it is being braked, 4/5 of time it is being driven. 
     // Error states
         typedef char _ERROR_STATE;
         #define ERROR_NONE                  0           // No errors 
@@ -358,6 +367,8 @@ void loop()
     static uint32_t     LastOverVoltage = 0;                    // When did we last detect an overvoltage condition
 
     static uint32_t     LastOverTemp = 0;                       // When did we last detect an overtemp condition 
+
+    static uint32_t     LastDrag = 0;                           // When did we last drag the slow motor (if that feature is enabled)
     
 
     // Read sensors and set any error conditions
@@ -382,7 +393,7 @@ void loop()
             }
         }            
         
-        // Check VNH2DSP30 chip diagnostic pins for fault condition
+        // Check VNH2SP30 chip diagnostic pins for fault condition
         // These pins go low in the case of overtemperature or a short on the motor leads, but we won't know exactly which condition caused it. 
         if (digitalRead(M1_DIAG) == LOW || digitalRead(M2_DIAG) == LOW)
         {
@@ -734,6 +745,14 @@ void loop()
     // Update Fan Speed (it will automatically take care of manual control)
     // ---------------------------------------------------------------------------------------------------------------------------------------------->    
         AutoFanControl();
+
+    // Drag the slower motor if that feature is enabled
+    // ---------------------------------------------------------------------------------------------------------------------------------------------->    
+    if (DragInnerTrack && (millis() - LastDrag > DRAG_FREQ_MS))
+    {
+        DragMotor();
+        LastDrag = millis();
+    }
 }
 
 
@@ -745,6 +764,7 @@ void InitializeBlinker(BlinkStream *blinker, uint8_t blinktimes)
     blinker->WaitTime = StreamBlinkOnTime;      // Start with On time
     blinker->Active = true;                     // Start the blinker
 }
+
 
 void HaltBlinker(BlinkStream *blinker)
 {
@@ -783,525 +803,6 @@ uint32_t m = millis();
 }
 
 
-
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// EXTERNAL INTERRUPTS
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-ISR(INT1_vect)
-{
-    // INT1 is used to read RC Channel 1, and it controls Motor 1
-    ProcessRCPulse(0);
-}
-
-ISR(INT0_vect)
-{
-    // INT0 is used to read RC Channel 2, and it controls Motor 2
-    ProcessRCPulse(1);
-}
-
-void ProcessRCPulse(uint8_t ch)
-{
-    static uint32_t     last[NUM_RC_CHANNELS];
-    static _RC_STATE    Ch_State[NUM_RC_CHANNELS] = {RC_SIGNAL_ACQUIRE, RC_SIGNAL_ACQUIRE};   // Start off in the acquiring state for each channel
-    static uint8_t      Ch_PulseCount[NUM_RC_CHANNELS] = {0, 0};                              // How many pulses have we received in the acquiring state
-    uint32_t            pulseWidth;                                                           // Measured pulse width
-    uint32_t            uS;                                                                   // Temp storage of current micros()
-    boolean             pulseReceived = false;
-
-    uS =  micros();    // Do this very first so we aren't introducing unnecessary latency
-
-    // Channel 1 is attached to Port D pin 3 
-    if (ch == 0)
-    {
-        if (PIND & (1 << PD3))
-        {   // Rising edge - save the time and exit
-            last[ch] = uS;
-            return;
-        }
-        else
-        {   // Falling edge - pulse received
-            pulseWidth = uS - last[ch];                        
-            pulseReceived = true;
-        }
-    }
-
-    // Channel 2 is attached to Port D pin 2 
-    if (ch == 1)
-    {
-        if (PIND & (1 << PD2))
-        {   // Rising edge - save the time and exit
-            last[ch] = uS;
-            return;
-        }
-        else
-        {   // Falling edge - pulse received
-            pulseWidth = uS - last[ch];            
-            pulseReceived = true;
-        }
-    }
-
-    // Process received pulse
-    if (pulseReceived)
-    {
-        // Measure the pulsewidth.
-        if (pulseWidth >= PULSE_WIDTH_ABS_MIN && pulseWidth <= PULSE_WIDTH_ABS_MAX)
-        {
-            // This is a valid pulse. Save the time.
-            LastGoodRCPulse[ch] = uS;
-            
-            switch (Ch_State[ch])
-            {
-                case RC_SIGNAL_LOST:
-                    Ch_State[ch] = RC_SIGNAL_ACQUIRE;
-                    Ch_PulseCount[ch] = 1;
-                    break;
-                
-                case RC_SIGNAL_ACQUIRE:
-                    Ch_PulseCount[ch] += 1;
-                    if (Ch_PulseCount[ch] >= RC_PULSECOUNT_TO_ACQUIRE)
-                    {
-                        Ch_State[ch] = RC_SIGNAL_SYNCHED;
-                    }
-                    break;
-
-                case RC_SIGNAL_SYNCHED:
-                    if ((pulseWidth >= (PULSE_WIDTH_CENTER - PULSE_WIDTH_DEADBAND)) && (pulseWidth <= (PULSE_WIDTH_CENTER + PULSE_WIDTH_DEADBAND)))
-                    {   // The stick is centered, or within the deadband of center. Make sure motor is stopped.
-                        StopMotor(ch + 1);                                      // Add 1 to channel because it is zero-based and StopMotor takes 1 or 2
-                    }
-                    else
-                    {   // We have a command for the motor
-                        setSpeed(ch + 1, getSpeedCommand_fromRC(pulseWidth));   // Add 1 to channel because it is zero-based and setSpeed takes 1 or 2
-                    }
-                    break;
-            }
-        }
-        else
-        {
-            // Invalid pulse. If we haven't had a good pulse for a while, stop the motor and set the state to SIGNAL_LOST. 
-            if (uS - LastGoodRCPulse[ch] > RC_TIMEOUT_US)
-            {
-                Ch_State[ch] = RC_SIGNAL_LOST;
-                Ch_PulseCount[ch] = 0;
-                StopMotor(ch + 1);                                              // Add 1 to channel because it is zero-based and StopMotor takes 1 or 2
-            }
-        }
-
-        // We know what the individual channel's state is, but let's combine both channel's states into a single 'RC state' 
-        // If both channels share the same state, then that is also the state of the overall RC system
-        if (Ch_State[0] == Ch_State[1]) 
-        {
-            RC_State = Ch_State[0];
-        }
-        else
-        {   // In this case, the channels have different states. 
-            // If even one channel is synched, then we consider the system synched:
-            if (Ch_State[0] == RC_SIGNAL_SYNCHED || Ch_State[1] == RC_SIGNAL_SYNCHED) RC_State = RC_SIGNAL_SYNCHED;
-            // The only remaining options are that neither channel is synched, and at least one of the channels is lost (meaning, it was synched but then signal was removed)
-            // We could this as system lost:
-            else RC_State = RC_SIGNAL_LOST;
-        }
-    }
-}
-
-int16_t getSpeedCommand_fromRC(uint16_t pulseWidth)
-{
-    // Constrain pulse width to typical range.
-    pulseWidth = constrain(pulseWidth, PULSE_WIDTH_TYP_MIN, PULSE_WIDTH_TYP_MAX);
-
-    // Now scale pulse width from the 1000 to 2000 range, to -/+ our PWM duty cycle range
-    return map(pulseWidth, PULSE_WIDTH_TYP_MIN, PULSE_WIDTH_TYP_MAX, -MOTOR_PWM_TOP, MOTOR_PWM_TOP);
-}
-
-void EnableRCInterrupts(void)
-{   // Enable INTO and INT1 external interrupts
-    EIMSK = 0x03;               // Enable INT0 and INT1 interrupts
-    EIFR = 0x03;                // Clear interrupts to start (by setting flag bits to 1)
-}
-
-void DisableRCInterrupts(void)
-{
-    // Disable INT0 and INT1 external interupts
-    EIMSK = 0;                  // Disable INT0 and INT1 interrupts
-}
-
-
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// SERIAL COMMANDS
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-boolean ReadData(DataSentence * sentence)
-{
-    byte ByteIn;
-    static boolean addressReceived = false;     // Have we received a byte that matches our address
-    static char input_line[SENTENCE_BYTES];
-    static uint8_t numBytes = 0;                // Start off with no data received
-    
-    boolean SentenceReceived = false;           // Start off false, will get set to true if a valid sentence was received
-
-
-    // Read all the bytes that are available, starting with the first byte that matches our address
-    while(Serial.available())               
-    {
-        ByteIn = Serial.read();
-        if (ByteIn == MyAddress)
-        {
-            addressReceived = true;         // Matching address
-            input_line[0] = ByteIn;         // Save it in our array
-            numBytes = 1;                   // Subsequent bytes will be added to the array until we have enough to compare against INIT_STRING
-        }
-        else if (addressReceived)
-        {
-            input_line[numBytes++] = ByteIn;
-            if (numBytes >= SENTENCE_BYTES) break;  // We have enough bytes for a full sentence, so evaluate it
-        }
-    }
-
-    // If we have enough bytes for a full sentence, save it
-    if (numBytes >= SENTENCE_BYTES)
-    {   // We have enough bytes for a full sentence
-        sentence->Address = input_line[0];
-        sentence->Command = input_line[1];
-        sentence->Value = input_line[2];
-        sentence->Checksum = input_line[3];
-
-        // Now verify the checksum
-        if (ChecksumValid(sentence))
-        {
-            SentenceReceived = true;    // Yes, a valid sentence has been received!                         
-        }
-
-        // Start everything over
-        input_line[0] = '\0';
-        addressReceived = false;
-        numBytes = 0;
-    }
-
-    return SentenceReceived;
-}
-
-boolean ChecksumValid(DataSentence * sentence)
-{
-    uint8_t check = (sentence->Address + sentence->Command + sentence->Value) & B01111111;
-
-    if (check == sentence->Checksum) return true;
-    else                             return false;
-}
-
-void ProcessCommand(DataSentence * sentence)
-{
-    // Address bytes have values greater than 127 
-    switch (sentence->Command)
-    {
-        case 0:         
-            // Motor 1 Forward
-            setSpeed(1, getSpeedCommand_fromSerial(sentence->Value));
-            break;
-
-        case 1:         
-            // Motor 1 Reverse
-            setSpeed(1, -getSpeedCommand_fromSerial(sentence->Value));
-            break;
-
-        case 2: 
-            // Set minimum voltage
-            // Used to set a custom minimum voltage for the battery supplying power (essentially LVC level). If battery voltage drops below this value, 
-            // motors will be turned off. This value is cleared at startup, so must be set each run. The value is sent in .2 volt 
-            // increments with a command of zero corresponding to 6v, which is the minimum. Valid data is from 0 to 50 (6-16 volts). 
-            // The function for converting volts to command data is Value = (desired volts-6) x 5
-            
-            // If valid value sent, update MinVoltage
-            if (sentence->Value <= 50)
-            {
-                MinVoltage = 6.0 + ((float)sentence->Value * 0.2);
-            }
-            break;
-
-        case 3:
-            // Set maximum voltage - not implemented. Actual max voltage is approximately 16 volts.
-            break;
-            
-        case 4: 
-            // Motor 2 Forward
-            setSpeed(2, getSpeedCommand_fromSerial(sentence->Value));
-            break;
-
-        case 5: 
-            // Motor 2 Reverse
-            setSpeed(2, -getSpeedCommand_fromSerial(sentence->Value));
-            break;
-
-        // cases  6-13 reserved for future compatibility with the equivalent Sabertooth commands 
-    
-        case 14: 
-            // Serial Watchdog (disabled by default on each boot)
-            // Values greater than 0 will enabled the watchdog. The value specifies what length of time the controller will wait for a new serial command, after which if it does not receive one it will 
-            // stop the motors as a safety precaution. This can help guard against for example the communication cable becoming disconnected. 
-            // The the value passed is 0 it will disable the watchdog, however the feature is disabled by default on each restart so you don't need to do anything if you don't want it. 
-            // Note also the serial watchdog has no effect when the Scout is running in RC mode. 
-
-            if (sentence->Value == 0)
-            {
-                SerialWatchdog = false;
-            }
-            else
-            {
-                // The length of time for the watchdog to wait is set in 100mS increments, so for example a value of 10 would equate to a watchdog timeout of 1000mS (1 second). 
-                // Valid data is a number from 0 to 255 which corresponds to watchdog timeouts of 100ms (1/10 second) to 25500mS (25.5 seconds)
-                // The function for converting watchdog time to command data is Value = desired time in mS / 100 
-                SerialWatchdogTimeout_mS = sentence->Value * 100;
-                SerialWatchdog = true;
-            }
-            break;
-
-        case 15: 
-            // Change baud rate. If valid value passed, re-start the hardware serial port at the selected baud rate
-            switch (sentence->Value)
-            {
-                case BAUD_CODE_2400:    Serial.begin(2400);     break;
-                case BAUD_CODE_9600:    Serial.begin(9600);     break;
-                case BAUD_CODE_19200:   Serial.begin(19200);    break;
-                case BAUD_CODE_38400:   Serial.begin(38400);    break;
-                case BAUD_CODE_115200:  Serial.begin(115200);   break;
-                case BAUD_CODE_57600:   Serial.begin(57600);    break;
-            }
-            break;
-
-        // cases 16-17 reserved for future compatibility with Sabertooth commands (ramping and deadband)
-        // case  19 presently un-assigned
-
-        case 20:
-            // Direct fan control
-            // Set fan speed to value 0-255
-            setFanSpeed(sentence->Value);
-            // If users sets a fan speed, we switch to ManualFanControl. They can revert to automatic control by issuing command 21
-            ManualFanControl = true;
-            break;
-
-        case 21: 
-            // Set fan control to "Automatic"
-            // Fan control is automatic by default, so this command doesn't need to be issued unless the user initiated manual fan control (command 20) and now wants to revert to automatic.
-            // Value is ignored. 
-            ManualFanControl = false;
-            break; 
-
-        case 22: 
-            // Set maximum current
-            // Used to set a maximum current PER MOTOR (not total device current). If current on either motor exceeds the maximum level, BOTH motors will be stopped. 
-            // Value is in amps and can be any value from 1 to 30. Default is 12 amps, if the user chooses to set a higher level it is highly recommended to use a cooling fan. 
-            // One may wonder why we don't permit milliamp-level adjustment the way we do with voltage. The reason is that current sensing on this device is crude and 
-            // setting a precision current limit isn't possible anyway. 
-            
-            // If valid value sent, update MaxCurrent_A
-            if (sentence->Value > 0 && sentence->Value <= 30)
-            {
-                MaxCurrent_A = sentence->Value;
-            }
-            break;
-            
-        default:
-            break;
-    }
-}
- 
-int16_t getSpeedCommand_fromSerial(uint8_t val)
-{
-    // Serial speed commands should be 0 to 127.
-    val = constrain(val, 0, 127);
-
-    // Now multiply by 3 to scale our speed value (from 0 to 127) to our PWM duty cycle range (0 to 381) 
-    return val * 3;        
-}
-
-
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// MOTOR CONTROL
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// This function expects the speed value to be a number from -MOTOR_PWM_TOP to +MOTOR_PWM_TOP
-void setSpeed(uint8_t motor, int16_t speed)
-{
-    if (speed > 0)
-    {   //Forward
-        if (motor == 1)
-        {
-            digitalWrite(M1_DirA, HIGH);
-            digitalWrite(M1_DirB, LOW);
-        }
-        else if (motor == 2)
-        {
-            digitalWrite(M2_DirA, HIGH);
-            digitalWrite(M2_DirB, LOW);            
-        }
-    }
-    else 
-    {   //Reverse
-        if (motor == 1)
-        {
-            digitalWrite(M1_DirA, LOW);
-            digitalWrite(M1_DirB, HIGH);
-        }
-        else if (motor == 2)
-        {
-            digitalWrite(M2_DirA, LOW);
-            digitalWrite(M2_DirB, HIGH);            
-        }
-    }
-
-    // Now set the PWM, always a positive number
-    if (motor == 1)
-    {
-        M1_OCR = abs(speed); 
-    }
-    else if (motor == 2)
-    {
-        M2_OCR = abs(speed);
-    }
-}
-
-void StopMotor1(void)
-{
-    M1_OCR = 0;
-}
-
-void StopMotor2(void)
-{
-    M2_OCR = 0;
-}
-
-void StopMotor(uint8_t m)
-{
-    if (m == 1) StopMotor1();
-    if (m == 2) StopMotor2();
-}
-
-void StopMotors(void)
-{
-    StopMotor1();
-    StopMotor2();
-}
-
-boolean MotorsRunning(void)
-{
-    // Return true if either motor is running
-    if (M1_OCR > 0 || M2_OCR > 0) return true;
-    else return false;
-}
-
-void ClearVNH2SP30Faults(void)
-{
-    // This should already have been done, but just to be safe
-    StopMotors();
-
-    // To clear a fault condition we must toggle the inputs to the opposite of what they are presently
-    ToggleAllDirectionPins();
-
-    // Now we wait a little bit for the fun of it, though this probably isn't necessary
-    delay(200);
-
-    // Then put them back
-    ToggleAllDirectionPins();
-
-    // Wait just a little bit more
-    delay(50);
-}
-
-void ToggleAllDirectionPins()
-{   
-    // Set every motor direction pin to the opposite of what it is now 
-    digitalWrite(M1_DirA, !digitalRead(M1_DirA));
-    digitalWrite(M1_DirB, !digitalRead(M1_DirB));
-    digitalWrite(M2_DirA, !digitalRead(M2_DirA));
-    digitalWrite(M2_DirB, !digitalRead(M2_DirB));
-}
-
-
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// FAN CONTROL
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-void setFanSpeed(uint8_t s)
-{
-    FAN_OCR = s;
-}
-
-void StopFan(void)
-{
-    FAN_OCR = 0;
-}
-
-void setFanFullSpeed(void)
-{
-    setFanSpeed(255);
-}
-
-void AutoFanControl()
-{
-uint8_t tempComponent; 
-uint8_t currentComponent; 
-uint16_t maxMotorCurrent;
-
-    // Here we set the fan automatically as a function of the measured temperature and current draw of the device. 
-
-    // This function should be called routinely by the main loop, but AFTER the main loop has also updated the temparature and current measurements
-    // by calling CheckTemp() and CheckCurrent()
-    
-    // Empirical testing needs to be done to characterize the fan's ability to cool the chips. One could also implement a sort of PID loop to attempt to 
-    // keep the chips at a set temperature. 
-    
-    // Until that testing has been performed, we take the conservative approach of blasting the fan whenever we have even modest current or temperature.
-
-    // The first thing we check is for certain error states that will always result in maximum fan speed, and yes, will even override any manual speed control
-    if (ErrorState == ERROR_OVERTEMP || ErrorState == ERROR_OVERCURRENT)
-    {
-        setFanFullSpeed();                          // Full speed
-        return;                                     // Exit
-    }
-
-    // If we are not in an error state, we permit manual control of the fan speed.
-    if (ManualFanControl) return;                   // In manual mode exit without doing anything. 
-
-    // Ok, we need to set the fan to some level automatically. We calculate two speeds based on temperature and current, 
-    // and apply whichever one ends up higher. 
-
-    // Temperature - turn the fan on starting at 40*C (~100*F) and go to full speed by 70*C (~160*F)
-    if (BoardTemp >= 40)
-    {
-        if (BoardTemp > 70) 
-        {   // Anything over 70, go to full speed
-            tempComponent = MaximumFanSpeed; 
-        }
-        else
-        {   // Between 40 and 70, map to fan speed range
-            tempComponent = map(BoardTemp, 40, 70, MinimumFanSpeed, MaximumFanSpeed);
-        }
-    }
-    else
-    {   // Anything under 40, the fan can be off
-        tempComponent = 0;
-    }
-
-    // Current - turn the fan on starting at 6 amps and go to full speed by 12 amps (remember motor current variables are in milliamps)
-    maxMotorCurrent = max(M1_Current_mA, M2_Current_mA);    // Base it off whichever motor is currently drawing the most
-    if (maxMotorCurrent >= 6000)
-    {
-        if (maxMotorCurrent > 12000)
-        {   // Anything over 12 amps, go to full speed
-            currentComponent = MaximumFanSpeed;
-        }
-        else
-        {   // Between 6 and 12, map to fan speed range
-            currentComponent = map(maxMotorCurrent, 6000, 12000, MinimumFanSpeed, MaximumFanSpeed);
-        }
-    }
-    else
-    {   // Anything under 6 amps the fan can be off
-        currentComponent = 0;
-    }
-
-    // Now we set the fan speed to whichever component is higher
-    setFanSpeed(max(tempComponent, currentComponent)); 
-}
-
-
-
 // -------------------------------------------------------------------------------------------------------------------------------------------------->
 // STATUS LED
 // -------------------------------------------------------------------------------------------------------------------------------------------------->
@@ -1318,7 +819,6 @@ void StatusLEDOff(void)
 {
     digitalWrite(BlueLED, LOW);
 }
-
 
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------->
@@ -1339,155 +839,6 @@ void ErrorLEDOff(void)
 }
 
 
-
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// THERMISTOR - TEMP SENSING
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// Checks thermistor temp. Saves value in *C to global variable BoardTemp. 
-void CheckTemp()
-{
-    float reading;
-    
-    // Read thermistor voltage divider
-    reading = analogRead(TempSense);
- 
-    // Convert value to resistance
-    reading = (1023 / reading) - 1;
-    reading = TEMP_SERIES_RESISTOR / reading;
-
-    // Thanks to LadyAda for the handy thermistor tutorial: 
-    // https://learn.adafruit.com/thermistor/using-a-thermistor
-    // But we only need this if we care to know the temperature in celsius. For purposes of controlling the fan, 
-    // this is not strictly necessary. 
-    float steinhart;
-    steinhart = (float)reading / THERMISTOR_NOM_RES;    // (R/Ro)
-    steinhart = log(steinhart);                         // ln(R/Ro)
-    steinhart /= THERMISTOR_BCONSTANT;                  // 1/B * ln(R/Ro)
-    steinhart += 1.0 / (THERMISTOR_NOM_TEMP + 273.15);  // + (1/To)
-    steinhart = 1.0 / steinhart;                        // Invert
-    steinhart -= 273.15;                                // convert to C
-
-    BoardTemp = (uint16_t)steinhart;                    // Set our global variable, to one degree Celsius precision which is close enough for our purposes.
-
-//    Serial.print("Temperature "); 
-//    Serial.print(steinhart);
-//    Serial.println(" *C");
-
-    // VNH2SP30 goes into thermal shutdown at 175*C typical (but could also shut down as low as 150*C) 
-    // Thermal reset is at 135*C (meaning, it has to get back down to 135 before it turns back on)
-
-}
-
-
-
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// CURRENT SENSE
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// Checks current. Saves value in mA to global variable TotalCurrent_mA. If over the set current limit, will return true, otherwise if in bounds returns false. 
-boolean CheckCurrent()
-{
-uint16_t Current;
-static boolean firstPass1 = true;
-static boolean firstPass2 = true;
-static uint8_t OverCurrentCount1 = 0;
-static uint8_t OverCurrentCount2 = 0;
-
-// How many successive overcurrent readings do we require before returning true
-// Set this variable in combination with the frequency this function is called. 
-// For examplel, if we call this ten times a second and we want the over-current 
-// measurement to persist for 2 seconds before treating it as a fault condition, 
-// we would set this to 20. 
-const uint8_t MaxOverCurrentCount = 10;
-
-// To reduce the effect of noise we run our readings through a low-pass filter.
-// With an alpha of 0.9, it is like giving the current reading a weight of 10%, and past readings a weight of 90%
-const float alpha = 0.9;
-  
-// Calculations: 
-// VNH2SP30 datasheet 
-    // Iout/Isense = 11370 (typical)
-// Rearranged
-    // Isense = Iout/11370
-// ADC input
-    // Vsense = Isense * Rsense (where Vsense is the input into ADC and Rsense is 1.5k)
-// Combined
-    // Vsense = (Iout / 11370) * 1.5k   (implies 132 millivolts reading per amp)
-// Now that we know the volts reading per amp, we can calculate the amps per ADC step:
-    // 5V / 1024 ADC steps / 0.132 V per A = 37 mA current per ADC count
-
-    // Motor 1
-    Current = analogRead(M1_CS) * 37;                                           // Instantaneous current in milli-amps
-    if (firstPass1) { M1_Current_mA = Current; firstPass1 = false; }            // Filter
-    M1_Current_mA = alpha * (float)M1_Current_mA + (1.0 - alpha) * Current;
-    if (M1_Current_mA > (MaxCurrent_A * 1000)) OverCurrentCount1 += 1;          // Compare in milliamps, increment count if we are over
-    else OverCurrentCount1 = 0;                                                 // If we are below the limit, reset the count
-
-    // Motor 2
-    Current = analogRead(M2_CS) * 37;                                           // Instantaneous current in milli-amps
-    if (firstPass2) { M2_Current_mA = Current; firstPass2 = false; }            // Filter
-    M2_Current_mA = alpha * (float)M2_Current_mA + (1.0 - alpha) * Current; 
-    if (M2_Current_mA > (MaxCurrent_A * 1000)) OverCurrentCount2 += 1;          // Compare in milliamps, increment count if we are over
-    else OverCurrentCount2 = 0;                                                 // If we are below the limit, reset the count
-
-    // Save the combined current draw to our global variable
-    TotalCurrent_mA = M1_Current_mA + M2_Current_mA; 
-    
-    // Are we over the limit? 
-    if ((OverCurrentCount1 > MaxOverCurrentCount) || (OverCurrentCount2 > MaxOverCurrentCount))
-    {
-        OverCurrentCount1 = OverCurrentCount2 = 0;                              // Reset the counts. We rely on the calling routine to decide what action to take.
-        return true;                                                            // Over-current condition
-    }    
-    else return false;                                                          // If we make it to here, current is within limits for both motors. 
-}
-
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-// VOLTAGE SENSE
-// -------------------------------------------------------------------------------------------------------------------------------------------------->
-float ReadVoltage(void)
-{
-int voltSense;                  // What we read on the analog pin
-float unFilteredVoltage;        // Converted to voltage on pin
-static float filteredVoltage;   // Voltage on pin after being run through a simple low-pass filter
-float Voltage;                  // Pin voltage converted to battery voltage
-static boolean firstPass = true;       
-
-// We are using this voltage divider:
-// 
-// GND |-----/\/\/\-----------------/\/\/\-------> +V Batt
-//            4.7k         |         10k
-//                         |
-//                      Measure
-
-// The voltage we measure on the pin isn't the actual voltage of the battery, it is the battery voltage divided by some number:
-//multiplier = (4.7 + 10) / 4.7 = 3.1277
-const float multiplier = 3.1277;    // Multiply this by our measured voltage and we will have battery voltage
-
-// In some cases we may also need to apply a fixed offset, for example in cases where an input polarity diode drops the input voltage by a set amount. 
-// On the Scout ESC we actually don't use an input polarity diode, although we do have input polarity MOSFETs (that only really protect the VNH2SP30 chips)
-const float vAdj = 0.0;             // Adjustment factor 
-
-// To reduce the effect of noise, we run our voltage through a low-pass filter.
-// With an alpha of 0.9, it is like giving the voltage reading a weight of 10%, and past readings a weight of 90%
-const float alpha = 0.9;
-
-    // Ok, here we go: first take an analog reading (will give us a number between 0-1023)
-        voltSense = analogRead(VSense);
-    //Convert the reading to actual voltage read (0 - 5 Vdc)
-        unFilteredVoltage = (voltSense / 1024.0) * 5.0;
-    // Now run it through low-pass filter
-        if (firstPass) { filteredVoltage = unFilteredVoltage; firstPass = false; }
-        filteredVoltage = alpha * filteredVoltage + (1.0 - alpha) * unFilteredVoltage;
-    // Now convert the measured voltage to the external battery voltage by accounting for our voltage divider
-        Voltage = filteredVoltage * multiplier;
-    // Now also add our adjustment factor to account for the voltage drop on the input polarity diode
-        Voltage += vAdj;
-    
-    //Serial.print("Voltage: ");
-    //Serial.println(Voltage,2);
-
-    return Voltage;
-}
 
 
 
