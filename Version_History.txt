@@ -1,4 +1,7 @@
-0.92.02         03/05/2017 - Changed version to standard nomenclature. 
+0.90.03         03/11/2017 - Break up the sketch into tabs for easier reading. Add options to brake motors when stopped, and to "drag" 
+                             the slower track to try to prevent it from freewheeling faster than desired in certain applications. Both 
+                             options default to off on boot but can be set by the user via serial commands. 
+0.90.02         03/05/2017 - Changed version to standard nomenclature. 
    9.02         01/20/2017 - Fixed bug in serial checksum validation routine.
    9.01         10/11/2016 - Changed serial watchdog command to be compatible with the Sabertooth protocol. 
                            - Added a serial command to allow changing the baud rate also compatible with the 
