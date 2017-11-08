@@ -41,7 +41,7 @@ The Scout accepts either standard RC inputs (from any hobby receiver) or standar
 On boot the Scout blinks the red LED slowly until a signal is detected. Whichever type of signal is detected first is the communication protocol the Scout will use until the next reboot, and any signal on the alternate input will be ignored. 
 
 During normal operation the blue LED indicates the status of the incoming signal. If a fault is detected the motors will be immediately stopped and the red LED will flash a numeric sequence indicating the reason. 
-
+<br />
 <br />
 ![Scout LED Key](http://www.openpanzer.org/images/github/scout_ledpatterns.jpg)
 <br />
