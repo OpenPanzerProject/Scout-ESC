@@ -2,7 +2,7 @@
 
 # Open Panzer Scout ESC
 
-The Scout ESC is an open-source, dual brushed-motor speed controller that accepts both standard RC inputs or logic-level serial commands. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter (precompiled firmwares can also be downloaded and flashed to the Scout using the [OP Config program](http://openpanzer.org/downloads)). It operates at ultrasonic frequencies (no motor whine), at voltages up to 24 volts, and is rated at 12 amps continuous per channel, but the addition of a fan can increase the current capacity (30 amps max, requires serial commands to increase overcurrent limit beyond 12 amps). The Scout has its own onboard fan controller that can drive any standard 12 volt, 2-pin PC case fan (the 40mm size works well). The board has over-temperature protection, over and under-voltage protection, is reverse-polarity protected, and can be current limited via serial commands. 
+The Scout ESC is an open-source, dual brushed-motor speed controller that accepts both standard RC inputs or logic-level serial commands. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter (precompiled firmwares can also be downloaded and flashed to the Scout using the [OP Config program](http://openpanzer.org/downloads)). It operates at ultrasonic frequencies (no motor whine), at voltages up to 24 volts, and is rated at 12 amps continuous per channel but the addition of a fan can increase the current capacity (30 amps max, requires serial commands to increase overcurrent limit beyond 12 amps). The Scout has its own onboard fan controller that can drive any standard 12 volt, 2-pin PC case fan (the 40mm size works well). The board has over-temperature protection, over and under-voltage protection, is reverse-polarity protected, and can be current limited via serial commands. 
 
 The Scout was designed with the Open Panzer Tank Control Board in mind and requires no special setup in that application other than to plug and play. It is the perfect size for controlling even the heaviest 1/16th scale RC tanks. For more details on connecting the Scout and TCB together see the [Serial Motor Controller](http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) page of the TCB Wiki. 
 
@@ -164,7 +164,8 @@ If you want to contribute to the project here are a few firmware improvements th
 </tr>
 <tr>
     <td>Operating current:</td>
-    <td valign="top">12 amps per channel continuous without fan<br />30 amps absolute max</td>
+    <td valign="top">12 amps per channel continuous without fan<br />30 amps absolute max<br />
+    Current limit set to 12 amps by default, can be increased via serial commands</td>
 </tr>
 <tr>
     <td>Motor PWM:</td>
