@@ -110,7 +110,7 @@ void BrakeMotors()
     BrakeMotor2();
 }
 
-void ClearVNH2SP30Faults(void)
+void ClearMotorDriverChipFaults(void)
 {
     // This should already have been done, but just to be safe
     StopMotors();

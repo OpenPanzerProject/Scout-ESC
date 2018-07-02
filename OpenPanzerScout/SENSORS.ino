@@ -1,4 +1,4 @@
-// We can measure temperature with an onboard thermistor, current through the VNH2SP30 chips, and voltage (through a voltage divider resistor setup)
+// We can measure temperature with an onboard thermistor, current through the motor driver chips, and voltage (through a voltage divider resistor setup)
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------->
 // THERMISTOR - TEMP SENSING
@@ -33,9 +33,11 @@ void CheckTemp()
 //    Serial.print(steinhart);
 //    Serial.println(" *C");
 
-    // VNH2SP30 goes into thermal shutdown at 175*C typical (but could also shut down as low as 150*C) 
-    // Thermal reset is at 135*C (meaning, it has to get back down to 135 before it turns back on)
-
+    // The VNH2SP30/VNH5019 chips have their own overtemperature protection and will go into thermal shutdown at 175*C typical (but possibly as low as 150*C) 
+    // Thermal reset is at 135*C (meaning, it has to get back down to 135 before the chips turn back on).
+    // The throw a fault (En/Diag brought low) on overtemp which we check for as well, so basically we have two overcurrent detection methods, though the chips
+    // are likely to register far sooner than the board thermistor we are measuring here. The thermistor is still useful however for knowing absolue temperature
+    // which we use to control the cooling fan. 
 }
 
 
@@ -54,9 +56,10 @@ static uint8_t OverCurrentCount2 = 0;
 
 // How many successive overcurrent readings do we require before returning true
 // Set this variable in combination with the frequency this function is called. 
-// For examplel, if we call this ten times a second and we want the over-current 
+// For example, if we call this ten times a second and we want the over-current 
 // measurement to persist for 2 seconds before treating it as a fault condition, 
 // we would set this to 20. 
+// Presently frequency is 100mS, or 10 times per second. Combined with count of 10 means 1 second total:
 const uint8_t MaxOverCurrentCount = 10;
 
 // To reduce the effect of noise we run our readings through a low-pass filter.
@@ -64,26 +67,31 @@ const uint8_t MaxOverCurrentCount = 10;
 const float alpha = 0.9;
   
 // Calculations: 
-// VNH2SP30 datasheet 
-    // Iout/Isense = 11370 (typical)
+    // VNH2SP30 datasheet 
+        // Iout/Isense = 11370 (typical)
+    // VNH5019 datasheet
+        // Iout/Isense = 9245 (this is not directly from the datasheet, calculated from your known Rsense and Iout & Vsense from the listed values at 3A, 8A, 15A, 25A
 // Rearranged
-    // Isense = Iout/11370
+    // Isense = Iout/(Typical Iout/Isense)
 // ADC input
     // Vsense = Isense * Rsense (where Vsense is the input into ADC and Rsense is 1.5k)
 // Combined
-    // Vsense = (Iout / 11370) * 1.5k   (implies 132 millivolts reading per amp)
+    // Vsense = (Iout / 11370) * 1.5k   Implies 132 millivolts reading per amp for VNH2SP30
+    // Vsense = (Iout /  9245) * 1.5k   Implies 162 millivolts reading per amp for VNH5019
 // Now that we know the volts reading per amp, we can calculate the amps per ADC step:
-    // 5V / 1024 ADC steps / 0.132 V per A = 37 mA current per ADC count
+    // 5V / 1024 ADC steps / 0.132 V per A = 37 mA current per ADC count VNH2SP30
+    // 5V / 1024 ADC steps / 0.162 V per A = 30 mA current per ADC count VNH5019
+// The specific value is held in mA_per_ADC which is determined by the setting of the variable MotorChipVersion
 
     // Motor 1
-    Current = analogRead(M1_CS) * 37;                                           // Instantaneous current in milli-amps
+    Current = analogRead(M1_CS) * mA_per_ADC;                                   // Instantaneous current in milli-amps
     if (firstPass1) { M1_Current_mA = Current; firstPass1 = false; }            // Filter
     M1_Current_mA = alpha * (float)M1_Current_mA + (1.0 - alpha) * Current;
     if (M1_Current_mA > (MaxCurrent_A * 1000)) OverCurrentCount1 += 1;          // Compare in milliamps, increment count if we are over
     else OverCurrentCount1 = 0;                                                 // If we are below the limit, reset the count
 
     // Motor 2
-    Current = analogRead(M2_CS) * 37;                                           // Instantaneous current in milli-amps
+    Current = analogRead(M2_CS) * mA_per_ADC;                                   // Instantaneous current in milli-amps
     if (firstPass2) { M2_Current_mA = Current; firstPass2 = false; }            // Filter
     M2_Current_mA = alpha * (float)M2_Current_mA + (1.0 - alpha) * Current; 
     if (M2_Current_mA > (MaxCurrent_A * 1000)) OverCurrentCount2 += 1;          // Compare in milliamps, increment count if we are over
@@ -126,7 +134,7 @@ static boolean firstPass = true;
 const float multiplier = 3.1277;    // Multiply this by our measured voltage and we will have battery voltage
 
 // In some cases we may also need to apply a fixed offset, for example in cases where an input polarity diode drops the input voltage by a set amount. 
-// On the Scout ESC we actually don't use an input polarity diode, although we do have input polarity MOSFETs (that only really protect the VNH2SP30 chips)
+// On the Scout ESC we actually don't use an input polarity diode, although we do have input polarity MOSFETs (that only really protect the motor driver chips)
 const float vAdj = 0.0;             // Adjustment factor 
 
 // To reduce the effect of noise, we run our voltage through a low-pass filter.

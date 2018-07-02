@@ -1,10 +1,8 @@
 /* Scout ESC            Open Panzer dual brushed motor controller
  * Source:              openpanzer.org              
  * Authors:             Luke Middleton
- * Version:             00.90.03    (for use with board revisions 8,9,10,11)
- * Last Updated:        03/11/2017
  *                      
- * Copyright 2016 Open Panzer
+ * Copyright 2018 Open Panzer
  *   
  * For more information, see the Open Panzer Wiki:
  * http://openpanzer.org/wiki/
@@ -29,6 +27,9 @@
 
 // DEFINES AND GLOBAL VARIABLES
 // -------------------------------------------------------------------------------------------------------------------------------------------------->
+    // Motor Chip Selection
+        const uint8_t MotorChipVersion =    2;          // 1 - VNH2SP30, used on Scout boards through Rev 10
+                                                        // 2 - VNH5019,  used on Scout boards from    Rev 11
     // Serial comms
         #define BAUD_RATE_DEFAULT           38400       // Baud rate fixed at boot - the user can change it via serial command, but this way they always know what rate the device is initialized to. 
         boolean SerialWatchdog =            false;      // If false (default), the motors will continue at their last commanded speed forever until a new command arrives. If no new command ever arrives, they will keep going. 
@@ -153,11 +154,12 @@
 
     // Current sensing
         boolean EnableOverCurrent =         true;       // If false we will not enter an error condition even if the current goes over the limit. Use only for testing. In any case the device will still turn itself off if gets too hot, which it will at high currents
-        uint16_t MaxCurrent_A =             12;         // Maximum current allowed in amps. Default to 12 amps. Current is per channel (not total device current). Can be changed by serial command (1-30A)
+        uint16_t MaxCurrent_A =             12;         // Maximum current allowed in Amps. Default to 12 amps. Current is per channel (not total device current). Can be changed by serial command (1-30A)
         #define CurrentReadFrequency_mS     100         // How often to measure current draw in milliseconds
         uint16_t TotalCurrent_mA =          0;          // How much total current is being drawn by both motors combined, in milliamps
         uint16_t M1_Current_mA =            0;          // Current for motor 1
         uint16_t M2_Current_mA =            0;          // Current for motor 2 
+        uint16_t mA_per_ADC =               30;         // How many mA of current is represented by every increment of the ADC reading. Is different depending on the motor driver chip: VNH2SP30 = 37, VNH5019 = 30
 
     // Thermistor/temp-sensing
         #define TEMP_MEASURE_FREQ_MS        200         // How often to measure temperature in milliseconds
@@ -166,8 +168,8 @@
         #define THERMISTOR_NOM_TEMP         25          // Nominal temperature
         #define THERMISTOR_BCONSTANT        3455        // Beta coefficient of thermistor from datasheet (25-100*C range)
         #define TEMP_SERIES_RESISTOR        10000       // What is the value in ohms of the series resistor inline with the thermistor (R22 on rev 8 of the Scout board)
-        #define TEMP_CUTOFF                 150         // Temperature cutoff. Same as the VNH2SP30 chips, which would probably register this temp much sooner than the thermistor. 
-        uint16_t BoardTemp =                0;          // What is the temperature of the onboard thermistor in Celsius (no decimal places)
+        #define TEMP_CUTOFF                 150         // Temperature cutoff in degrees Celsius, applied to the board thermistor. The motor chips VNH2SP30/VNH5019 shutdown anywhere from 150-175* and they will probably register far sooner than the board thermistor. 
+        uint16_t BoardTemp =                0;          // What is the current temperature of the onboard thermistor in Celsius (no decimal places)
 
     // Fan
         boolean ManualFanControl =          false;      // Flag to specify whether fan is controlled by the user via serial commands, or allowed to blow automatically. Default is auto unless the user specifically requests otherwise. 
@@ -214,6 +216,23 @@
 
 void setup()
 {
+    // HARDWARE DIFFERENCES
+    // ---------------------------------------------------------------------------------------------------------------------------------------------->    
+        // If we had been clever from the beginning, we could have made it possible for the board to determine this dynamically based on the status of 
+        // an unused pin held to GND/+5v (we have one unused pin left, ADC7). But we didn't do that for earlier board versions (prior to 11) we just 
+        // left it floating. So instead MotorChipVersion is set in firmware (see very top of this file) and you will have to compile two versions of
+        // firmware for both versions of hardware unfortunately. The difference it makes is in the current calculation, using the later VNH5019 mA_per_ADC
+        // value on a board with the older VNH2SP30 chips will cause you to underestimate the actual current draw. 
+        if (MotorChipVersion == 1)
+        {   
+            mA_per_ADC = 37;        // VNH2SP30 motor chips
+        }
+        else if (MotorChipVersion == 2)
+        {   
+            mA_per_ADC = 30;        // VNH5019  motor chips
+        }
+        
+    
     // PINS
     // ---------------------------------------------------------------------------------------------------------------------------------------------->    
         // MOTOR 1
@@ -291,7 +310,7 @@ void setup()
        
         // The frequency is determined by the PWM mode (phase correct in our case), the clock frequency, the prescaler, and our TOP value. 
         // Formula is Clock/(2*Prescaler*TOP) = 16,000,000 / (2 * 1 * 381) = 20,997 Hz
-        // Low frequencies result in "motor whine" which is annoying and doesn't sound realistic on a model. The VNH2SP30 motor drivers used on this device have a maximum PWM frequency input of 20Khz, though this
+        // Low frequencies result in "motor whine" which is annoying and doesn't sound realistic on a model. The VNH2SP30/VNH5019 motor drivers used on this device have a maximum PWM frequency input of 20Khz, though this
         // is not absolute. Higher frequencies cause less efficient operation and create more heat. Human hearing typically extends to about 20Khz, so above that the PWM should be inaudbile. 
         // We choose a value of 381 because it gives us a frequency just above 20KHz, but also because it is equal to 127 * 3. As this device will accept a 7-bit speed number (meaning values from 0-127), we only 
         // need to multiply the speed number * 3 to get the correct OCR1A/B value for the duty cycle. 
@@ -388,17 +407,18 @@ void loop()
             LastTempMeasure = millis();                             // Save the time of this reading
             if (BoardTemp > TEMP_CUTOFF)                            // Check overtemp
             {
-                // We count this as an overtemperature condition, though if the thermistor is over 150 we can be pretty darn sure the VNH2SP30s already returned an over-temp fault anyway
+                // We count this as an overtemperature condition, though if the thermistor is over 150 we can be pretty darn sure the motor chipss already returned an over-temp fault anyway (they shutdown anywhere from 150*-175* C)
                 ErrorState = ERROR_OVERTEMP;
             }
         }            
         
-        // Check VNH2SP30 chip diagnostic pins for fault condition
+        // Check motor driver chips diagnostic pins for fault condition
         // These pins go low in the case of overtemperature or a short on the motor leads, but we won't know exactly which condition caused it. 
         if (digitalRead(M1_DIAG) == LOW || digitalRead(M2_DIAG) == LOW)
         {
             // We could try to infer the cause of the fault by reading the onboard thermistor. If it is cool then we can assume this is a short. But if it is hot, 
-            // we still don't know exactly whether the cause was heat or a short. So we don't bother, and we treat both of these cases together as basically overtemp
+            // we still don't know exactly whether the cause was heat or a short. So we don't bother, and we treat both of these cases together as basically overtemp,
+            // and a short would definitely cause an overtemp eventually if it wasn't addressed. 
             ErrorState = ERROR_OVERTEMP;
         }
         
@@ -406,9 +426,9 @@ void loop()
         if ((millis() - LastCurrentMeasure > CurrentReadFrequency_mS))
         {
             LastCurrentMeasure = millis();                          // Save the time of this reading
-            if (CheckCurrent())                                     // CheckCurrent returns true if we are over-current. Regardless we still want to check so we update the global variable. 
+            if (CheckCurrent())                                     // CheckCurrent returns true if we are over-current, but we do the check regardless so the global variable gets updated. 
             {
-                if (EnableOverCurrent)                              // We only cause an error if EnableOverCurrent is true (unless you are testing, it should be)
+                if (EnableOverCurrent)                              // We only cause an error if EnableOverCurrent is true (unless you are testing, it always should be)
                 {
                     LastOverCurrent = LastCurrentMeasure;           // Save the time of this event
                     ErrorState = ERROR_OVERCURRENT;                 // Set the error state
@@ -443,15 +463,15 @@ void loop()
         switch (ErrorState)
         {
             case ERROR_OVERTEMP:
-                // This error occurs when one of the VNH2SP30 chips has reported a fault condition. The fault could actually be overtemperature or a short, but we won't know
+                // This error occurs when one of the motor driver chips has reported a fault condition. The fault could actually be overtemperature or a short, but we won't know
                 // which it is so we just treat it as an overtemp condition. We can also find ourselves here if the onboard thermistor registers an overtemp condition, but 
                 // the motor chips would almost certainly have thrown an overtemp error long before the thermistor would have caught up. 
                 
                 // After a set amount of time, we try to clear the fault
                 if (millis() - LastOverTemp > OVERTEMP_DELAY_MS)
                 {
-                    // Attempt to clear the fault conditions on the VNH2SP30 chips
-                    ClearVNH2SP30Faults();
+                    // Attempt to clear the fault conditions on the motor drivers
+                    ClearMotorDriverChipFaults();
                     LastOverTemp = millis();    // Reset this, we will use it to keep toggling the chips after a set amount of time if the fault doesn't immediately clear
                 }
 
