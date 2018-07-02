@@ -2,16 +2,16 @@
 
 # Open Panzer Scout ESC
 
-The Scout ESC is an open-source, dual brushed-motor speed controller that accepts both standard RC inputs or logic-level serial commands. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter. It operates at ultrasonic frequencies (no motor whine), at voltages up to 16 volts, and is rated at 10 amps continuous per channel, but the addition of a fan can increase the current capacity. The Scout has its own onboard fan controller that can drive any standard 12 volt, 2-pin PC case fan (the 40mm size works well). An onboard thermistor also allows the processor to monitor the board temperature. 
+The Scout ESC is an open-source, dual brushed-motor speed controller that accepts both standard RC inputs or logic-level serial commands. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter (precompiled firmwares can also be downloaded and flashed to the Scout using the [OP Config program](http://openpanzer.org/downloads)). It operates at ultrasonic frequencies (no motor whine), at voltages up to 24 volts, and is rated at 12 amps continuous per channel, but the addition of a fan can increase the current capacity (30 amps max, requires serial commands to increase overcurrent limit beyond 12 amps). The Scout has its own onboard fan controller that can drive any standard 12 volt, 2-pin PC case fan (the 40mm size works well). The board has over-temperature protection, over and under-voltage protection, is reverse-polarity protected, and can be current limited via serial commands. 
 
 The Scout was designed with the Open Panzer Tank Control Board in mind and requires no special setup in that application other than to plug and play. It is the perfect size for controlling even the heaviest 1/16th scale RC tanks. For more details on connecting the Scout and TCB together see the [Serial Motor Controller](http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) page of the TCB Wiki. 
 
-The Scout can also be used in many other applications including robotics. You can think of it as an open-source variant of the [Dimension Engineering Sabertooth 2x12](http://www.dimensionengineering.com/products/sabertooth2x12) or the [Pololu Qik 2s12v10](https://www.pololu.com/product/1112). The remainder of this page covers technical documentation for those wanting to use the Scout in custom projects. 
+However the Scout can also be used in many other applications including robotics. You can think of it as an open-source variant of the [Dimension Engineering Sabertooth 2x12](http://www.dimensionengineering.com/products/sabertooth2x12) or the [Pololu Qik 2s12v10](https://www.pololu.com/product/1112). The remainder of this page covers technical documentation for those wanting to use the Scout in custom projects. 
 
 ## Files Included in this Repo
 There are two folders in this repository:<br />
   * **OpenPanzerScout** - This folder contains the firmware (Arduino sketch) that actually runs _on_ the Scout device.
-  * **libraries\** - This folder contains a C++ library that you can use in your projects in order to _control_ the Scout via serial from another Arduino or microcontroller. 
+  * **libraries** - This folder contains a C++ library that you can use in your projects in order to _control_ the Scout via serial from another Arduino or microcontroller. Or, just control it directly via RC signals from any RC receiver.
 
 ## Additional Resources
   * [Eagle Board and Schematic](http://www.openpanzer.org/downloads/scout/eagle/ScoutESC_v1_r11.zip) (zip)
