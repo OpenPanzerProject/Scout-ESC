@@ -160,11 +160,11 @@ If you want to contribute to the project here are a few firmware improvements th
 <html><table>
 <tr>
     <td width="40%">Input voltage:</td>
-    <td width="60%">6 - 16 volts</td>
+    <td width="60%" valign="top">6 - 24 volts (Rev 11 boards and later)<br />6 - 16 volts (Rev 10 boards and prior)</td>
 </tr>
 <tr>
     <td>Operating current:</td>
-    <td>10 amps per channel continuous without fan<br />20 amps peak</td>
+    <td valign="top">12 amps per channel continuous without fan<br />30 amps absolute max</td>
 </tr>
 <tr>
     <td>Motor PWM:</td>
@@ -172,11 +172,11 @@ If you want to contribute to the project here are a few firmware improvements th
 </tr>
 <tr>
     <td>RC Inputs:</td>
-    <td>Standard 1000-2000 uS pulsewidth<br />(1500 uS = motor stopped)</td>
+    <td valign="top">Standard 1000-2000 uS pulsewidth<br />(1500 uS = motor stopped)</td>
 </tr>
 <tr>
     <td>Serial Input:</td>
-    <td>38400 baud; 8 data bits, no parity, one stop bit; TTL level (5v max)</td>
+    <td valign="top">38400 baud; 8 data bits, no parity, one stop bit<br />TTL level (5v max)</td>
 </tr>
 <tr>
     <td>Dimensions (L x W):</td>
