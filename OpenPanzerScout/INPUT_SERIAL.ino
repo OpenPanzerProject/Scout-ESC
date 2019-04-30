@@ -146,7 +146,7 @@ void ProcessCommand(DataSentence * sentence)
             // Direct fan control
             // Set fan speed to value 0-255
             setFanSpeed(sentence->Value);
-            // If users sets a fan speed, we switch to ManualFanControl. They can revert to automatic control by issuing command 21
+            // If user sets a fan speed, we switch to ManualFanControl. They can revert to automatic control by issuing command 21
             ManualFanControl = true;
             break;
 
