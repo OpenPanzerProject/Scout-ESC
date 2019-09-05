@@ -91,7 +91,7 @@ By default the Scout will stop the motors if the input voltage dips below 6 volt
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Volts - 6) x 5<br />
 The valid range for the data byte is therefore 0 through 50. A data byte of 0 will equal a cutoff of 6 volts, which is the minimum. A data byte of 50 will equal a cutoff of 16 volts, which is the maximum. 
 
-**3 &nbsp;&nbsp;&nbsp;&nbsp; Set Minimum Voltage (0x03, b00000011)**<br />
+**3 &nbsp;&nbsp;&nbsp;&nbsp; Set Maximum Voltage (0x03, b00000011)**<br />
 Used to change the maximum voltage above which the Scout will stop the motors. Defaults to 16 volts and in fact 16 volts is the absolute maximum on all board revisions up to 11 (later designs may increase this, the VNH5019 driver chips can handle up to 24 volts but other components on the current board design are capped at 16). Values are not saved on reboot, so must be set with each power cycle. The data byte that follows this command must specify the desired voltage level in 0.2 volt increments. The function for converting desired volts to data byte is:<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Volts) x 5<br />
 The serial processor can accept data values from 30 to 140 (equating to voltages from 6 to 28) but they will be constrained to an absolute maximum which again for the current board design is capped at 16 volts (in other words, any data byte over 80 will be ignored). 
