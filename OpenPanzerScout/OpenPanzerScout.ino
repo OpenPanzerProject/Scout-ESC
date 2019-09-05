@@ -30,6 +30,9 @@
     // Motor Chip Selection
         const uint8_t MotorChipVersion =    2;          // 1 - VNH2SP30, used on Scout boards through Rev 10
                                                         // 2 - VNH5019,  used on Scout boards from    Rev 11
+    // Hardware Revision
+        const uint8_t BoardRevision =      11;          // Board revision
+
     // Serial comms
         #define BAUD_RATE_DEFAULT           38400       // Baud rate fixed at boot - the user can change it via serial command, but this way they always know what rate the device is initialized to. 
         boolean SerialWatchdog =            false;      // If false (default), the motors will continue at their last commanded speed forever until a new command arrives. If no new command ever arrives, they will keep going. 
@@ -147,9 +150,11 @@
         BlinkStream         ErrorLEDBlinker;
 
     // Voltage sensing
-        boolean EnableVoltageSensing =      true;       // If false, no voltage sensing will take place, and there will be no under or over-voltage protection aside from that provided by the chips (5.5v to 16v)
-        float MinVoltage =                  6.0;        // Minimum battery voltage before motors are enabled. Can be set by user to any value from 6-16 via serial commands. 
-        float MaxVoltage =                  16.0;       // Maximum allowed voltage before motors are disabled.
+        boolean EnableVoltageSensing =      true;       // If false, no voltage sensing will take place, and there will be no under or over-voltage protection aside from that provided by the chips.
+        float MinVoltage =                  6.0;        // Minimum battery voltage before motors are enabled, this can be increased by the user over serial but 6.0 is the absolute minimum. 
+        float MaxVoltage =                  16.0;       // Maximum allowed voltage before motors are disabled, this can be changed by the user over serial
+        uint8_t AbsMaxVoltage =               16;       // This is the absolute maximum allowed voltage, it will be adjusted later in setup() depending on the board revision, but it can not be changed via serial, 
+                                                        // nor will the serial change function allow the user to exceed this. 
         #define VoltageReadFrequency_mS     500         // How often to measure voltage in milliseconds
 
     // Current sensing
@@ -231,6 +236,27 @@ void setup()
         {   
             mA_per_ADC = 30;        // VNH5019  motor chips
         }
+
+        // The Scout has the ability to accept serial commands that will adjust its minimum and maximum voltages, but the absolute maximum is determined by the 
+        // hardware on the board. Although the new VNH5019 driver chips used on hardware revision 11+ permit voltages up to 24 (up from 16v for the VNH2SP30), other components
+        // on the board would need to be updated, including the LDO and also the voltage resistor divider used to measure voltage in the first place, which is still capped at 16 volts (4.7k and 10k).
+        // Note also that the VNH5019's internal voltage protection circuit will kick in anywhere typically from 24-27 volts, wheares a 24 volt battery actually exceeds 24 volts 
+        // so the design is still not really very well suited to 24 volt systems. But with some hardware changes the voltage range could certainly be increased to nominal 24 volts
+        // where a 4S lipo would be well under spec. 
+
+        // The other thing to consider however is that the Scout is designed to be used with the TCB and a power tap is conveniently provided to pass-through battery voltage to the TCB, 
+        // but the TCB Mk I is limited to 16 volts. The TCB Mk II may be limited to even less. 
+
+        // Anyway, if future hardware revisions permit then you can adjust this maximum. 
+        if (BoardRevision <= 11)
+        {
+            AbsMaxVoltage = 16;
+        }
+        else
+        {
+            AbsMaxVoltage = 16;
+        }
+        
         
     
     // PINS

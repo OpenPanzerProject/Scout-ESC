@@ -62,6 +62,8 @@ boolean ChecksumValid(DataSentence * sentence)
 
 void ProcessCommand(DataSentence * sentence)
 {
+uint8_t val;
+    
     // Address bytes have values greater than 127 
     switch (sentence->Command)
     {
@@ -90,7 +92,22 @@ void ProcessCommand(DataSentence * sentence)
             break;
 
         case 3:
-            // Set maximum voltage - not implemented. Actual max voltage is approximately 16 volts.
+            // If voltage exceeds the value set here, the motors will be turned off, however the valute set here can also not exceed AbsMaxVoltage which is 
+            // determined by the hardware on the board. MaxVoltage is cleared at startup (and set to default of AbsMaxVoltage) so must be re-set by serial 
+            // at each boot. The value is sent in 0.2 volt increments with valid values being: 
+            // 30 to 140 (6 volts to 28 volts) 
+            // However again this is subject to AbsMaxVoltage which for all curent board revisios is actually capped at 16 volts. 
+            // The function for converting volts to command data is Value = (desired volts / 0.2)
+
+            // If valid value is sent, update MaxVoltage
+            val = sentence->Value;
+            if (val >= 30 && val <= 140)        // Allowable range
+            {
+                if (val <= (AbsMaxVoltage * 5)) // But constrain also to our board-specific AbsMaxVoltage
+                {
+                    MaxVoltage = ((float)val * 0.2);
+                }
+            }
             break;
             
         case 4: 
