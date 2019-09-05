@@ -4,7 +4,7 @@
 #define VERSION_H
 
 
-#define FIRMWARE_VERSION        "0.91.11"      // Last update 4/30/2019
+#define FIRMWARE_VERSION        "0.91.20"      // Last update 9/5/2019
 
 // NOTE:
 // Versions past 0.91.xx are for Rev 11 and later boards only
