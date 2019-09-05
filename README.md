@@ -18,7 +18,7 @@ There are two folders in this repository:<br />
   * [Printable Schematic](http://www.openpanzer.org/downloads/scout/eagle/ScoutESC_v1_r11_Schematic.pdf) (8.5x11 PDF)
   * Drawing: [Board Top](http://www.openpanzer.org/images/downloadpage/scout_top.png) - [Board Bottom](http://www.openpanzer.org/images/downloadpage/scout_bottom.png)
   * Bill of Materials - [PDF](http://www.openpanzer.org/downloads/scout/bom/Scout_ESC_BOM.pdf) - [Excel](http://www.openpanzer.org/downloads/scout/bom/Scout_ESC_BOM.xls)
-  * [Bare boards at OSH Park](https://oshpark.com/shared_projects/AurPfLb7) - [Solder paste stencils at OSH Stencils](https://www.oshstencils.com/#projects/658838f2dd36906dd623376fcd23a949230f5a80)
+  * [Bare boards at OSH Park](https://oshpark.com/shared_projects/Ntf3RzTZ) - [Solder paste stencils at OSH Stencils](https://www.oshstencils.com/#projects/658838f2dd36906dd623376fcd23a949230f5a80)
   * [Gerber files](http://www.openpanzer.org/downloads/scout/eagle/ScoutESC_v1_r11_Gerber_SEEED.zip) formatted for [SEEED Studio PCB service](https://www.seeedstudio.com/fusion_pcb.html)			   
   * For more information on the Open Panzer project, see the [OpenPanzer Wiki](http://wiki.openpanzer.org).
   * For interfacing the Scout with the Open Panzer Tank Control Board (TCB), see the [Serial Motor Controller page](http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) in the TCB wiki.
