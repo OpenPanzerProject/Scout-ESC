@@ -2,7 +2,7 @@
 
 # Open Panzer Scout ESC
 
-The Scout ESC is an open-source, dual brushed-motor speed controller that accepts both standard RC inputs or logic-level serial commands. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter (precompiled firmwares can also be downloaded and flashed to the Scout using the [OP Config program](http://openpanzer.org/downloads)). It operates at ultrasonic frequencies (no motor whine), at voltages up to 24 volts, and is rated at 12 amps continuous per motor without additional heatsinking, but the addition of a fan can increase the current capacity (30 amps max, requires serial commands to increase overcurrent limit beyond 12 amps). The Scout has its own onboard fan controller that can drive any standard 12 volt, 2-pin PC case fan (the 40mm size works well). The board has over-temperature protection, over and under-voltage protection, is reverse-polarity protected, and can be current limited via serial commands. 
+The Scout ESC is an open-source, dual brushed-motor speed controller that accepts both standard RC inputs or logic-level serial commands. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter (precompiled firmwares can also be downloaded and flashed to the Scout using the [OP Config program](http://openpanzer.org/downloads)). It operates at ultrasonic frequencies (no motor whine), at voltages up to 16 volts, and is rated at 12 amps continuous per motor without additional heatsinking, but the addition of a fan can increase the current capacity (30 amps max, requires serial commands to increase overcurrent limit beyond 12 amps). The Scout has its own onboard fan controller that can drive any standard 12 volt, 2-pin PC case fan (the 40mm size works well). The board has over-temperature protection, over and under-voltage protection, over-current protection, and is reverse-polarity protected. Current and voltage limits can be adjusted via serial commands. 
 
 The Scout was designed with the Open Panzer Tank Control Board in mind and requires no special setup in that application other than to plug and play. It is the perfect size for controlling even the heaviest 1/16th scale RC tanks. For more details on connecting the Scout and TCB together see the [Serial Motor Controller](http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) page of the TCB Wiki. 
 
@@ -67,7 +67,7 @@ If an RC channel becomes disconnected the motor it controls will be stopped. If 
 
 The Scout uses the same packetized serial protocol used by the [Dimension Engineering](https://www.dimensionengineering.com/) Sabertooth line of motor controllers. Not all commands from the Sabertooth are supported, but the ones that are match exactly. Serial is TTL or "logic level", meaning signals into the Scout should remain within 0-5 volts. If you wish to use a true RS-232 device such as the serial port on a computer, you must add an RS-232 level shifter on the serial input line first. Level shifters based on the MAX232 chip are inexpensive and widely available from SparkFun, eBay, and elsewhere.  
 
-The baud rate on the Scout is fixed at 38400 but can be changed by modifying the sketch, it is the first definition at the top of the file. Serial is in the 8N1 protocol: each data byte consists of 8 bits, no parity bit, and 1 stop bit. This is the most common configuration for serial communication today, and is probably already the default on whatever master device you are using. 
+The baud rate on the Scout defaults to 38400 but can be changed by modifying the sketch or via serial commands. Serial is in the 8N1 protocol: each data byte consists of 8 bits, no parity bit, and 1 stop bit. This is the most common configuration for serial communication today, and is probably already the default on whatever master device you are using. 
 
 The serial "packet" is always 4 bytes long: it starts with an address byte, then a command byte, a data (value) byte, and a 7 bit checksum. 
 
@@ -91,8 +91,10 @@ By default the Scout will stop the motors if the input voltage dips below 6 volt
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Volts - 6) x 5<br />
 The valid range for the data byte is therefore 0 through 50. A data byte of 0 will equal a cutoff of 6 volts, which is the minimum. A data byte of 50 will equal a cutoff of 16 volts, which is the maximum. 
 
-**3 &nbsp;&nbsp;&nbsp;&nbsp; Not Implemented (0x03, b00000011)**<br />
-On the Sabertooth command 3 is used to set the maximum voltage. On the Scout the maximum voltage is hard-coded to 16 volts, which is the limit of the onboard driver ICs. 
+**3 &nbsp;&nbsp;&nbsp;&nbsp; Set Minimum Voltage (0x03, b00000011)**<br />
+Used to change the maximum voltage above which the Scout will stop the motors. Defaults to 16 volts and in fact 16 volts is the absolute maximum on all board revisions up to 11 (later designs may increase this, the VNH5019 driver chips can handle up to 24 volts but other components on the current board design are capped at 16). Values are not saved on reboot, so must be set with each power cycle. The data byte that follows this command must specify the desired voltage level in 0.2 volt increments. The function for converting desired volts to data byte is:<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Byte = (Desired Volts) x 5<br />
+The serial processor can accept data values from 30 to 140 (equating to voltages from 6 to 28) but they will be constrained to an absolute maximum which again for the current board design is capped at 16 volts (in other words, any data byte over 80 will be ignored). 
 
 **4 &nbsp;&nbsp;&nbsp;&nbsp; Motor 2 Forward (0x04, b00000100)**<br />
 This command will spin Motor 2 forward by the speed passed in the data byte. Valid speed data ranges from 0 to 127 with 0 being off (stopped) and 127 being full speed forward.
@@ -160,7 +162,7 @@ If you want to contribute to the project here are a few firmware improvements th
 <html><table>
 <tr>
     <td width="40%">Input voltage:</td>
-    <td width="60%" valign="top">6 - 24 volts (Rev 11 boards and later)<br />6 - 16 volts (Rev 10 boards and prior)</td>
+    <td width="60%" valign="top">6 - 16 volts</td>
 </tr>
 <tr>
     <td>Operating current:</td>
