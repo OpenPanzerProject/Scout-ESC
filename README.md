@@ -1,10 +1,10 @@
-![Open Panzer Scout ESC](http://www.openpanzer.org/images/github/scout_rev10_git.jpg)
+![Open Panzer Scout ESC](https://www.openpanzer.org/images/github/scout_rev10_git.jpg)
 
 # Open Panzer Scout ESC
 
 The Scout ESC is an open-source, dual brushed-motor speed controller that accepts both standard RC inputs or logic-level serial commands. The onboard processor is an ATmega 328 and can be programmed with the Arduino IDE using a standard FTDI cable or adapter (precompiled firmwares can also be downloaded and flashed to the Scout using the [OP Config program](http://openpanzer.org/downloads)). It operates at ultrasonic frequencies (no motor whine), at voltages up to 16 volts, and is rated at 12 amps continuous per motor without additional heatsinking, but the addition of a fan can increase the current capacity (30 amps max, requires serial commands to increase overcurrent limit beyond 12 amps). The Scout has its own onboard fan controller that can drive any standard 12 volt, 2-pin PC case fan (the 40mm size works well). The board has over-temperature protection, over and under-voltage protection, over-current protection, and is reverse-polarity protected. Current and voltage limits can be adjusted via serial commands. 
 
-The Scout was designed with the Open Panzer Tank Control Board in mind and requires no special setup in that application other than to plug and play. It is the perfect size for controlling even the heaviest 1/16th scale RC tanks. For more details on connecting the Scout and TCB together see the [Serial Motor Controller](http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) page of the TCB Wiki. 
+The Scout was designed with the Open Panzer Tank Control Board in mind and requires no special setup in that application other than to plug and play. It is the perfect size for controlling even the heaviest 1/16th scale RC tanks. For more details on connecting the Scout and TCB together see the [Serial Motor Controller](https://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) page of the TCB Wiki. 
 
 However the Scout can also be used in many other applications including robotics. You can think of it as an open-source variant of the [Dimension Engineering Sabertooth 2x12](http://www.dimensionengineering.com/products/sabertooth2x12) or the [Pololu Qik 2s12v10](https://www.pololu.com/product/1112). The remainder of this page covers technical documentation for those wanting to use the Scout in custom projects. 
 
@@ -14,15 +14,15 @@ There are two folders in this repository:<br />
   * **libraries** - This folder contains a C++ library that you can use in your projects in order to _control_ the Scout via serial from another Arduino or microcontroller. Or, just control it directly via RC signals from any RC receiver.
 
 ## Additional Resources
-  * [Eagle Board and Schematic](http://www.openpanzer.org/downloads/scout/eagle/ScoutESC_v1_r11.zip) (zip)
-  * [Printable Schematic](http://www.openpanzer.org/downloads/scout/eagle/ScoutESC_v1_r11_Schematic.pdf) (8.5x11 PDF)
-  * Drawing: [Board Top](http://www.openpanzer.org/images/downloadpage/scout_top.png) - [Board Bottom](http://www.openpanzer.org/images/downloadpage/scout_bottom.png)
-  * Bill of Materials - [PDF](http://www.openpanzer.org/downloads/scout/bom/Scout_ESC_BOM.pdf) - [Excel](http://www.openpanzer.org/downloads/scout/bom/Scout_ESC_BOM.xls)
+  * [Eagle Board and Schematic](https://www.openpanzer.org/secure_downloads/scout/eagle/ScoutESC_v1_r11.zip) (zip)
+  * [Printable Schematic](https://www.openpanzer.org/secure_downloads/scout/eagle/ScoutESC_v1_r11_Schematic.pdf) (8.5x11 PDF)
+  * Drawing: [Board Top](https://www.openpanzer.org/images/downloadpage/scout_top.png) - [Board Bottom](http://www.openpanzer.org/images/downloadpage/scout_bottom.png)
+  * Bill of Materials - [PDF](https://www.openpanzer.org/secure_downloads/scout/bom/Scout_ESC_BOM.pdf) - [Excel](https://www.openpanzer.org/secure_downloads/scout/bom/Scout_ESC_BOM.xls)
   * [Bare boards at OSH Park](https://oshpark.com/shared_projects/Ntf3RzTZ) - [Solder paste stencils at OSH Stencils](https://www.oshstencils.com/#projects/658838f2dd36906dd623376fcd23a949230f5a80)
-  * [Gerber files](http://www.openpanzer.org/downloads/scout/eagle/ScoutESC_v1_r11_Gerber_SEEED.zip) formatted for [SEEED Studio PCB service](https://www.seeedstudio.com/fusion_pcb.html)			   
-  * For more information on the Open Panzer project, see the [OpenPanzer Wiki](http://wiki.openpanzer.org).
-  * For interfacing the Scout with the Open Panzer Tank Control Board (TCB), see the [Serial Motor Controller page](http://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) in the TCB wiki.
-  * To discuss the project, feel free to join the [Open Panzer Community](http://openpanzer.org/forum/index.php?action=forum).
+  * [Gerber files](https://www.openpanzer.org/secure_downloads/scout/eagle/ScoutESC_v1_r11_Gerber_SEEED.zip) formatted for [SEEED Studio PCB service](https://www.seeedstudio.com/fusion_pcb.html)			   
+  * For more information on the Open Panzer project, see the [OpenPanzer Wiki](https://wiki.openpanzer.org).
+  * For interfacing the Scout with the Open Panzer Tank Control Board (TCB), see the [Serial Motor Controller page](https://openpanzer.org/wiki/doku.php?id=wiki:tcb:tcbinstall:motors:serialmotor) in the TCB wiki.
+  * To discuss the project, feel free to join the [Open Panzer Community](https://openpanzer.org/forum/index.php?action=forum).
   
 ## For Developers
 The sketch located in the OpenPanzerScout folder can be compiled in the Arduino IDE. First select "Arduino Nano" as the board selection from the Tools menu. The sketch can then be flashed to the Scout using an FTDI cable or something like [Adafruit's FTDI Friend](https://www.adafruit.com/product/284) adapter. 
@@ -31,7 +31,7 @@ If you are building your own board from scratch you will first need to load the 
 <br />
 <br />
 <br />
-![Scout ESC board layout](http://www.openpanzer.org/images/github/scout_layout_r11.jpg)
+![Scout ESC board layout](https://www.openpanzer.org/images/github/scout_layout_r11.jpg)
 <br />
 <br />
 
@@ -48,7 +48,7 @@ On boot the Scout blinks the red LED slowly until a signal is detected. Whicheve
 During normal operation the blue LED indicates the status of the incoming signal. If a fault is detected the motors will be immediately stopped and the red LED will flash a numeric sequence indicating the reason. 
 <br />
 <br />
-![Scout LED Key](http://www.openpanzer.org/images/github/scout_ledpatterns.jpg)
+![Scout LED Key](https://www.openpanzer.org/images/github/scout_ledpatterns.jpg)
 <br />
 <br />
 
