@@ -25,9 +25,9 @@ There are two folders in this repository:<br />
   * To discuss the project, feel free to join the [Open Panzer Community](https://openpanzer.org/forum/index.php?action=forum).
   
 ## For Developers
-The sketch located in the OpenPanzerScout folder can be compiled in the Arduino IDE. First select "Arduino Nano" as the board selection from the Tools menu. The sketch can then be flashed to the Scout using an FTDI cable or something like [Adafruit's FTDI Friend](https://www.adafruit.com/product/284) adapter. 
+The sketch located in the OpenPanzerScout folder can be compiled in the Arduino IDE. First select "Arduino/Genuino Uno" as the board selection from the Tools menu. The sketch can then be flashed to the Scout using an FTDI cable or something like [Adafruit's FTDI Friend](https://www.adafruit.com/product/284) adapter. 
 
-If you are building your own board from scratch you will first need to load the bootloader before flashing firmware. This must be done using the ISP connector and a device such as the AVRISP mkII or the USBASP. The bootloader used on the Scout is the Arduino Nano bootloader. 
+If you are building your own board from scratch you will first need to load the bootloader before flashing firmware. This must be done using the ISP connector and a device such as the AVRISP mkII or the USBASP. The bootloader used on the Scout is the Arduino/Genuino Uno bootloader (in the Arduino IDE, under the Tools menu, go to Board, and select "Arduino/Genuino Uno" from the Arduino AVR Boards category. Next, provide power to the Scout, make your ISP connection, then again under the Tools menu of the IDE, select Burn Bootloader).  
 <br />
 <br />
 <br />
